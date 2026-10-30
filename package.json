@@ -1,0 +1,21 @@
+{
+  "name": "we-qouta-line",
+  "version": "1.0.0",
+  "description": "نظام متابعة واستعلام جيجات خطوط وي الأرضي (WE Quota Monitor)",
+  "main": "fetch_line.js",
+  "scripts": {
+    "start": "node fetch_line.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "keywords": [
+    "we",
+    "telecom-egypt",
+    "quota-monitor",
+    "adsl",
+    "vdsl"
+  ],
+  "author": "Haitham Abd-Elkader",
+  "license": "MIT"
+}

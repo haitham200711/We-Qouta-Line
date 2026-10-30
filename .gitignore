@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Sensitive Data & User State
+data/lines.json
+data/settings.json
+*.tmp
+*.log
+
+# Chrome temporary profiles & debug files
+we_chrome_*
+.user_data/
+/tmp/
+
+# OS files
+.DS_Store
+Thumbs.db

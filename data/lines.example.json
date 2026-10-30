@@ -1,0 +1,17 @@
+[
+  {
+    "id": "example-line-1",
+    "landline": "0863880000",
+    "line_type": "landline",
+    "password": "SamplePassword123",
+    "label": "خط تجريبي",
+    "customer_name": "اسم العميل",
+    "balance": 50.0,
+    "points": 10000,
+    "notes": "",
+    "is_active": true,
+    "last_data": null,
+    "last_error": null,
+    "last_checked": null
+  }
+]

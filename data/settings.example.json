@@ -1,0 +1,12 @@
+{
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "telegram_enabled": false,
+  "alert_threshold_percent": 20,
+  "alert_threshold_gb": 15,
+  "alert_days_left": 3,
+  "auto_refresh_hours": 1,
+  "auto_refresh_minutes": 30,
+  "dark_mode": true,
+  "last_alerts_sent": {}
+}

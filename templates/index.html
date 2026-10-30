@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة استعلام ومتابعة خطوط وي | WE Quota Monitor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cairo Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        we: {
+                            purple: '#4a154b',
+                            dark: '#1e0c24',
+                            light: '#6c1d6d',
+                            accent: '#8e24aa'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #090d16;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .pulse-dot {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        /* Details animation */
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+        details[open] summary .accordion-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen">
+
+    <!-- Top Navbar -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
+                    <i class="fa-solid fa-wifi text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold text-white tracking-wide">متابعة خطوط وي للأعمال والفروع</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span> متصل
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400">استعلام ومراقبة جيجات الباقات الأساسية والإضافية لشركة WE</p>
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="تصدير كشف كامل بالخطوط Excel/CSV">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                    <span class="hidden sm:inline">تصدير تقرير</span>
+                </button>
+
+                <button onclick="refreshAllLines()" id="btnRefreshAll" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                    <i class="fa-solid fa-rotate text-purple-400" id="iconRefreshAll"></i>
+                    <span>تحديث الكل</span>
+                </button>
+
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-600/30 transition transform active:scale-95">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>إضافة خط جديد</span>
+                </button>
+
+                <button onclick="openSettingsModal()" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="الإعدادات والتيليجرام">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+
+        <!-- Top Statistics Cards -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3.5" id="statsGrid">
+            <!-- Total Lines -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-phone-volume"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400">إجمالي الخطوط</p>
+                    <h3 class="text-2xl font-black text-white" id="statTotalLines">0</h3>
+                    <p class="text-[11px] text-emerald-400 mt-0.5" id="statActiveLines">الكل نشط</p>
+                </div>
+            </div>
+
+            <!-- Remaining Quota -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400">إجمالي المتبقي الكلي</p>
+                    <h3 class="text-2xl font-black text-emerald-400" id="statTotalRemain">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5" id="statTotalQuota">من إجمالي 0 GB</p>
+                </div>
+            </div>
+
+            <!-- Used Quota -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400">إجمالي المستهلك</p>
+                    <h3 class="text-2xl font-black text-blue-400" id="statTotalUsed">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">عبر جميع الخطوط</p>
+                </div>
+            </div>
+
+            <!-- Critical Lines -->
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400">تجديد وشيك / حرج</p>
+                    <h3 class="text-2xl font-black text-amber-400" id="statCriticalLines">0</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5" id="statNearestRenewal">أقرب تجديد: -</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search, Filter & View Controls (Designed for 50+ lines) -->
+        <section class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800/80 space-y-3">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+                <!-- Search Box -->
+                <div class="relative w-full md:w-96">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="applyFiltersAndSort()" placeholder="بحث برقم التليفون، اسم العميل (صاحب الخط)، أو المسمى..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                </div>
+
+                <!-- Sort & View Controls -->
+                <div class="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end flex-wrap">
+                    <!-- Sort Dropdown -->
+                    <div class="flex items-center gap-1.5 text-xs text-slate-400">
+                        <span>ترتيب:</span>
+                        <select id="sortSelect" onchange="applyFiltersAndSort()" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-purple-500">
+                            <option value="least_gb">الأقل جيجات متبقية ⚠️</option>
+                            <option value="nearest_renew">الأقرب موعداً للتجديد ⏳</option>
+                            <option value="most_used">الأكثر استهلاكاً 📈</option>
+                            <option value="owner_name">اسم صاحب الخط 👤</option>
+                            <option value="landline">رقم الخط الأرضي 🔢</option>
+                        </select>
+                    </div>
+
+                    <!-- View Switcher -->
+                    <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button onclick="setViewMode('cards')" id="btnViewCards" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1">
+                            <i class="fa-solid fa-table-cells-large"></i>
+                            <span class="hidden sm:inline">بطاقات</span>
+                        </button>
+                        <button onclick="setViewMode('table')" id="btnViewTable" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                            <i class="fa-solid fa-table-list"></i>
+                            <span class="hidden sm:inline">جدول</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Filter Tabs -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs border-t border-slate-800/60 pt-2.5">
+                <button onclick="setFilterTab('all')" id="tab_all" class="px-3 py-1 rounded-lg font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/30 transition whitespace-nowrap">
+                    الكل (<span id="count_all">0</span>)
+                </button>
+                <button onclick="setFilterTab('critical')" id="tab_critical" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                    🚨 باقة منخفضة / حرجة (<span id="count_critical">0</span>)
+                </button>
+                <button onclick="setFilterTab('expiring')" id="tab_expiring" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                    ⏳ تجديد وشيك (&le; 3 أيام) (<span id="count_expiring">0</span>)
+                </button>
+                <button onclick="setFilterTab('with_topups')" id="tab_with_topups" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                    🚀 باقات إضافية (<span id="count_with_topups">0</span>)
+                </button>
+                <button onclick="setFilterTab('with_balance')" id="tab_with_balance" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                    💰 به رصيد مالي (<span id="count_with_balance">0</span>)
+                </button>
+            </div>
+        </section>
+
+        <!-- View 1: Compact Smart Cards Grid -->
+        <section id="linesContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Loading placeholder -->
+            <div class="col-span-full py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-500"></i>
+                <p class="text-sm font-medium">جاري تحميل الخطوط والبيانات...</p>
+            </div>
+        </section>
+
+        <!-- View 2: High-Density Table View (Perfect for 50+ lines) -->
+        <section id="tableViewContainer" class="hidden bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-bold">
+                        <tr>
+                            <th class="p-3">#</th>
+                            <th class="p-3">الخط والمسمى</th>
+                            <th class="p-3">صاحب الخط (العميل)</th>
+                            <th class="p-3">الرصيد / النقاط</th>
+                            <th class="p-3">المتبقي الكلي</th>
+                            <th class="p-3">الباقة الأساسية وموعدها</th>
+                            <th class="p-3">الباقات الإضافية</th>
+                            <th class="p-3 text-center">الحالة</th>
+                            <th class="p-3 text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-800/60">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Add New Line -->
+    <div id="modalAddLine" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button onclick="closeAddModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">إضافة خط إنترنت جديد</h3>
+                    <p class="text-xs text-slate-400">سجل حساب My WE الخاص بالخط لمتابعة استهلاكه</p>
+                </div>
+            </div>
+
+            <form id="formAddLine" onsubmit="submitAddLine(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">رقم التليفون الأرضي (مع كود المحافظة):</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-phone absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="addLandline" required placeholder="مثال: 0233445566 أو 034455667" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">كلمة مرور حساب My WE:</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="password" id="addPassword" required placeholder="كلمة المرور الخاصة بتطبيق ماي وي" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-9 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        <button type="button" onclick="togglePass('addPassword', this)" class="absolute left-3.5 top-2 text-slate-500 hover:text-slate-300">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">اسم صاحب الخط (العميل / الموظف):</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="addCustomerName" placeholder="مثال: م. هيثم عبد القادر، أحمد إبراهيم" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-0.5 block">إذا تُرِك فارغاً، سيتم التعرف عليه تلقائياً من خوادم وي.</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">الرصيد المالي (ج.م - اختياري):</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-coins absolute right-3.5 top-2.5 text-amber-500 text-xs"></i>
+                            <input type="number" step="0.01" id="addBalance" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">نقاط 4U (اختياري):</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-gift absolute right-3.5 top-2.5 text-purple-400 text-xs"></i>
+                            <input type="number" step="1" id="addPoints" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">مسمى الخط أو الفرع (اختياري):</label>
+                    <input type="text" id="addLabel" placeholder="مثال: فرع المعادي، راوتر السنترال" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">ملاحظات إضافية (اختياري):</label>
+                    <input type="text" id="addNotes" placeholder="مثال: باقة سوبر 150 + باقة إضافية 400" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeAddModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">إلغاء</button>
+                    <button type="submit" id="btnSubmitAdd" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-600/30 flex items-center gap-1.5">
+                        <span id="btnSubmitAddText">حفظ وفحص الجيجات</span>
+                        <i class="fa-solid fa-circle-notch fa-spin hidden" id="spinnerAdd"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Line Info -->
+    <div id="modalEditLine" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button onclick="closeEditModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">تعديل بيانات الخط</h3>
+                    <p class="text-xs text-slate-400" id="editModalSubTitle">تحديث اسم العميل ومسمى الخط</p>
+                </div>
+            </div>
+
+            <form id="formEditLine" onsubmit="submitEditLine(event)" class="space-y-3.5">
+                <input type="hidden" id="editLineId">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">اسم صاحب الخط (العميل):</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="editCustomerName" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">الرصيد المالي الحالي (ج.م):</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-coins absolute right-3.5 top-2.5 text-amber-500 text-xs"></i>
+                            <input type="number" step="0.01" id="editBalance" placeholder="مثال: 50.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">نقاط 4U / المكافآت:</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-gift absolute right-3.5 top-2.5 text-purple-400 text-xs"></i>
+                            <input type="number" step="1" id="editPoints" placeholder="مثال: 1250" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">مسمى الخط (Label):</label>
+                    <input type="text" id="editLabel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">كلمة المرور (اتركه فارغاً للإبقاء على الحالية):</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="password" id="editPassword" placeholder="كلمة مرور جديدة (اختياري)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-9 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
+                        <button type="button" onclick="togglePass('editPassword', this)" class="absolute left-3.5 top-2 text-slate-500 hover:text-slate-300">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">ملاحظات إضافية:</label>
+                    <input type="text" id="editNotes" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeEditModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">إلغاء</button>
+                    <button type="submit" id="btnSubmitEdit" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/30">
+                        حفظ التعديلات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Settings & Telegram -->
+    <div id="modalSettings" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeSettingsModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">إعدادات النظام وتنبيهات التيليجرام</h3>
+                    <p class="text-xs text-slate-400">تخصيص الإشعارات التلقائية وفترات التحديث</p>
+                </div>
+            </div>
+
+            <form id="formSettings" onsubmit="submitSettings(event)" class="space-y-4">
+                <!-- Telegram Section -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-brands fa-telegram text-sky-400 text-lg"></i>
+                            <span class="text-sm font-bold text-white">تنبيهات بوت تيليجرام</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="settingTelegramEnabled" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Telegram Bot Token:</label>
+                        <input type="text" id="settingBotToken" placeholder="مثال: 123456789:ABCdefGhIJKlmNoPQ..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Telegram Chat ID:</label>
+                        <input type="text" id="settingChatId" placeholder="مثال: 987654321 أو -100xxxxxxx" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+
+                    <div class="pt-1 flex items-center justify-between">
+                        <button type="button" onclick="testTelegramBtn()" id="btnTestTelegram" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/20 transition">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>إرسال رسالة تجربة</span>
+                        </button>
+                        <span id="testTelegramStatus" class="text-xs"></span>
+                    </div>
+                </div>
+
+                <!-- Thresholds Section -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                    <span class="text-sm font-bold text-white block">عتبات التحذير والإشعارات</span>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">تنبيه عند انخفاض النسبة (%):</label>
+                            <input type="number" id="settingThresholdPercent" min="5" max="50" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">تنبيه عند انخفاض الجيجات (GB):</label>
+                            <input type="number" id="settingThresholdGb" min="2" max="100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">تنبيه قبل موعد التجديد (أيام):</label>
+                            <input type="number" id="settingDaysLeft" min="1" max="15" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">معدل الفحص والمزامنة التلقائية:</label>
+                            <select id="settingAutoRefreshMinutes" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                                <option value="15">كل 15 دقيقة ⚡</option>
+                                <option value="30">كل 30 دقيقة (موصى به) ⭐</option>
+                                <option value="45">كل 45 دقيقة</option>
+                                <option value="60">كل ساعة واحدة</option>
+                                <option value="120">كل ساعتين</option>
+                                <option value="240">كل 4 ساعات</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-600/30">حفظ الإعدادات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-6 z-50 flex items-center gap-3 bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl px-4 py-3 transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-xs font-medium text-slate-200"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        let allLines = [];
+        let currentFilterTab = 'all';
+        let currentViewMode = 'cards';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            setInterval(loadDashboard, 60000); // Poll every 60s
+        });
+
+        async function loadDashboard() {
+            await Promise.all([fetchLines(), fetchStats()]);
+        }
+
+        async function fetchLines() {
+            try {
+                const res = await fetch('/api/lines');
+                const data = await res.json();
+                if (data.success) {
+                    allLines = data.lines;
+                    updateTabCounts();
+                    applyFiltersAndSort();
+                }
+            } catch (err) {
+                console.error("Error fetching lines:", err);
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                if (data.success && data.stats) {
+                    const s = data.stats;
+                    document.getElementById('statTotalLines').textContent = s.total_lines;
+                    document.getElementById('statActiveLines').textContent = `${s.active_lines} خط متصل ونشط`;
+                    document.getElementById('statTotalRemain').innerHTML = `${s.total_remain_gb} <span class="text-xs font-semibold text-slate-400">GB</span>`;
+                    document.getElementById('statTotalQuota').textContent = `من إجمالي ${s.total_quota_gb} GB`;
+                    document.getElementById('statTotalUsed').innerHTML = `${s.total_used_gb} <span class="text-xs font-semibold text-slate-400">GB</span>`;
+                    document.getElementById('statCriticalLines').textContent = s.critical_lines_count;
+                    document.getElementById('statNearestRenewal').textContent = s.nearest_renewal_days !== null ? `أقرب تجديد: خلال ${s.nearest_renewal_days} يوم` : 'أقرب تجديد: -';
+                }
+            } catch (err) {
+                console.error("Error fetching stats:", err);
+            }
+        }
+
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const btnCards = document.getElementById('btnViewCards');
+            const btnTable = document.getElementById('btnViewTable');
+            const cardsContainer = document.getElementById('linesContainer');
+            const tableContainer = document.getElementById('tableViewContainer');
+
+            if (mode === 'cards') {
+                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1";
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1";
+                cardsContainer.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+            } else {
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1";
+                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1";
+                cardsContainer.classList.add('hidden');
+                tableContainer.classList.remove('hidden');
+            }
+            applyFiltersAndSort();
+        }
+
+        function setFilterTab(tab) {
+            currentFilterTab = tab;
+            const tabs = ['all', 'critical', 'expiring', 'with_topups', 'with_balance'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab_${t}`);
+                if (!el) return;
+                if (t === tab) {
+                    el.className = "px-3 py-1 rounded-lg font-semibold bg-purple-600/25 text-purple-300 border border-purple-500/40 transition whitespace-nowrap shadow-sm";
+                } else {
+                    el.className = "px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap";
+                }
+            });
+            applyFiltersAndSort();
+        }
+
+        function updateTabCounts() {
+            let criticalCount = 0;
+            let expiringCount = 0;
+            let topupCount = 0;
+            let balanceCount = 0;
+
+            allLines.forEach(l => {
+                const raw = l.last_data;
+                const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+                const remainPct = Number(q.remain_percent ?? q.remain_percentage ?? 100);
+                const daysLeft = Number(q.days_left ?? q.days_remaining ?? 999);
+                const topups = (q.topup_bundles || (q.bundles && q.bundles.filter(b => !(b.type || '').toLowerCase().includes('main'))) || []);
+                const balance = Number(l.balance ?? q.balance ?? 0);
+
+                if (q.status_tag === 'critical' || remainPct <= 15) criticalCount++;
+                if (daysLeft <= 3) expiringCount++;
+                if (topups.length > 0) topupCount++;
+                if (balance > 0) balanceCount++;
+            });
+
+            document.getElementById('count_all').textContent = allLines.length;
+            document.getElementById('count_critical').textContent = criticalCount;
+            document.getElementById('count_expiring').textContent = expiringCount;
+            document.getElementById('count_with_topups').textContent = topupCount;
+            document.getElementById('count_with_balance').textContent = balanceCount;
+        }
+
+        function applyFiltersAndSort() {
+            const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            const sortBy = document.getElementById('sortSelect').value;
+
+            let result = allLines.filter(line => {
+                const raw = line.last_data;
+                const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+                const landline = (line.landline || '').toLowerCase();
+                const label = (line.label || '').toLowerCase();
+                const custName = (line.customer_name || q.customer_name || '').toLowerCase();
+                const notes = (line.notes || '').toLowerCase();
+
+                // Search query match
+                const matchQuery = !query || landline.includes(query) || label.includes(query) || custName.includes(query) || notes.includes(query);
+                if (!matchQuery) return false;
+
+                // Tab filter match
+                if (currentFilterTab === 'critical') {
+                    const remainPct = Number(q.remain_percent ?? q.remain_percentage ?? 100);
+                    return q.status_tag === 'critical' || remainPct <= 15;
+                } else if (currentFilterTab === 'expiring') {
+                    const daysLeft = Number(q.days_left ?? q.days_remaining ?? 999);
+                    return daysLeft <= 3;
+                } else if (currentFilterTab === 'with_topups') {
+                    const topups = (q.topup_bundles || (q.bundles && q.bundles.filter(b => !(b.type || '').toLowerCase().includes('main'))) || []);
+                    return topups.length > 0;
+                } else if (currentFilterTab === 'with_balance') {
+                    return Number(line.balance ?? q.balance ?? 0) > 0;
+                }
+                return true;
+            });
+
+            // Sorting
+            result.sort((a, b) => {
+                const qa = (a.last_data && a.last_data.data) ? { ...a.last_data, ...a.last_data.data } : (a.last_data || {});
+                const qb = (b.last_data && b.last_data.data) ? { ...b.last_data, ...b.last_data.data } : (b.last_data || {});
+
+                if (sortBy === 'least_gb') {
+                    return Number(qa.remain_gb ?? 9999) - Number(qb.remain_gb ?? 9999);
+                } else if (sortBy === 'nearest_renew') {
+                    return Number(qa.days_left ?? 9999) - Number(qb.days_left ?? 9999);
+                } else if (sortBy === 'most_used') {
+                    return Number(qb.used_gb ?? 0) - Number(qa.used_gb ?? 0);
+                } else if (sortBy === 'owner_name') {
+                    const nameA = a.customer_name || qa.customer_name || '';
+                    const nameB = b.customer_name || qb.customer_name || '';
+                    return nameA.localeCompare(nameB, 'ar');
+                } else if (sortBy === 'landline') {
+                    return (a.landline || '').localeCompare(b.landline || '');
+                }
+                return 0;
+            });
+
+            if (currentViewMode === 'cards') {
+                renderCards(result);
+            } else {
+                renderTable(result);
+            }
+        }
+
+        // Render Compact Cards (Optimized for 50+ lines)
+        function renderCards(lines) {
+            const container = document.getElementById('linesContainer');
+            if (!lines || lines.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 flex flex-col items-center justify-center gap-3">
+                        <i class="fa-solid fa-phone-slash text-2xl text-purple-400"></i>
+                        <h4 class="text-sm font-bold text-slate-300">لا توجد خطوط تطابق البحث أو الفلتر المختار</h4>
+                        <p class="text-xs text-slate-500">جرب تغيير كلمات البحث أو اختر تبويب "الكل".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = lines.map(line => {
+                const raw = line.last_data;
+                const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+                const hasData = Boolean(raw && raw.success && (q.total_gb !== undefined || q.remain_gb !== undefined));
+                const error = line.last_error;
+
+                const totalGb = Number(q.total_gb ?? 0);
+                const remainGb = Number(q.remain_gb ?? 0);
+                const usedGb = Number(q.used_gb ?? 0);
+                const remainPct = Number(q.remain_percent ?? q.remain_percentage ?? (totalGb > 0 ? Math.round((remainGb / totalGb) * 100) : 0));
+                const expireDate = q.expire_date || q.renewal_date || 'غير محدد';
+                const daysLeft = Number(q.days_left ?? q.days_remaining ?? 0);
+                const hoursLeft = Number(q.hours_left ?? (daysLeft * 24));
+                const offerName = q.offer_name || 'باقة وي إنترنت';
+                const customerName = line.customer_name || q.customer_name || 'مشترك وي';
+                const statusTag = q.status_tag || q.status || (remainPct <= 10 || daysLeft <= 2 ? 'critical' : remainPct <= 25 || daysLeft <= 5 ? 'warning' : 'good');
+                const statusText = q.status_text || (statusTag === 'critical' ? 'حرج' : statusTag === 'warning' ? 'تحذير' : 'ممتاز');
+                const lastUpdated = q.last_updated || line.last_checked || 'غير محدد';
+                const rawBal = (line.balance !== undefined && line.balance !== null) ? line.balance : q.balance;
+                const rawPts = (line.points !== undefined && line.points !== null) ? line.points : q.points;
+                const hasBalance = rawBal !== undefined && rawBal !== null && !isNaN(rawBal) && rawBal !== '';
+                const hasPoints = rawPts !== undefined && rawPts !== null && !isNaN(rawPts) && rawPts !== '';
+                const balanceVal = hasBalance ? Number(rawBal).toFixed(2) : null;
+                const pointsVal = hasPoints ? parseInt(rawPts, 10).toLocaleString('en-US') : null;
+
+                // Bundles
+                const bundlesList = Array.isArray(q.bundles) ? q.bundles : [];
+                let mainBundle = q.main_bundle;
+                let topupBundles = (Array.isArray(q.topup_bundles) ? q.topup_bundles : [])
+                    .filter(b => Number(b.current_amount ?? 0) > 0);
+
+                if (!mainBundle && bundlesList.length > 0) {
+                    mainBundle = bundlesList.find(b => (b.type || '').toLowerCase().includes('main')) || bundlesList[0];
+                }
+                if (topupBundles.length === 0 && bundlesList.length > 1) {
+                    topupBundles = bundlesList.filter(b => b !== mainBundle && Number(b.current_amount ?? 0) > 0);
+                }
+
+                // Calculate active capacity excluding expired extra quotas
+                const mbCapacity = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
+                const topupCapacity = topupBundles.reduce((acc, b) => acc + Number(b.initial_amount || 0), 0);
+                const activeTotalGb = (mbCapacity + topupCapacity) > 0 ? (mbCapacity + topupCapacity) : totalGb;
+                const activeRemainPct = activeTotalGb > 0 ? Math.min(100, Math.round((remainGb / activeTotalGb) * 100)) : remainPct;
+
+                const mbName = mainBundle ? (mainBundle.name || 'الباقة الأساسية') : offerName;
+                const mbInitial = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
+                const mbRemain = mainBundle ? Number(mainBundle.current_amount ?? remainGb) : remainGb;
+                const mbDays = Number(mainBundle?.days_left ?? mainBundle?.remaining_days ?? mainBundle?.days_remaining ?? daysLeft);
+                let mbExpire = (mainBundle && mainBundle.expire_date && mainBundle.expire_date !== 'غير محدد') ? mainBundle.expire_date : null;
+                if (!mbExpire) {
+                    if (mbDays > 0 && mbDays !== daysLeft) {
+                        const d = new Date();
+                        d.setDate(d.getDate() + mbDays);
+                        mbExpire = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 12:00 AM`;
+                    } else {
+                        mbExpire = expireDate;
+                    }
+                }
+
+                let badgeColor = 'bg-slate-700/50 text-slate-300 border-slate-600';
+                let progressColor = 'bg-emerald-500';
+
+                if (statusTag === 'critical') {
+                    badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/25';
+                    progressColor = 'bg-rose-500';
+                } else if (statusTag === 'warning') {
+                    badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/25';
+                    progressColor = 'bg-amber-500';
+                } else {
+                    badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
+                    progressColor = 'bg-emerald-500';
+                }
+
+                const topupRemainTotal = topupBundles.reduce((acc, b) => acc + Number(b.current_amount || 0), 0).toFixed(1);
+
+                return `
+                    <div class="bg-slate-900/80 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 shadow-md transition flex flex-col justify-between relative group" id="card-${line.id}">
+                        <div>
+                            <!-- Header: Landline, Label, Owner Name & Actions -->
+                            <div class="flex items-start justify-between gap-2.5 mb-3">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-800 text-purple-300 border border-slate-700/80 tracking-wide">${line.landline}</span>
+                                        <h3 class="text-sm font-bold text-white group-hover:text-purple-300 transition truncate max-w-[170px]" title="${escapeHtml(line.label)}">${escapeHtml(line.label)}</h3>
+                                    </div>
+                                    <!-- Prominent Owner Name -->
+                                    <div class="flex items-center gap-1.5 mt-1 text-xs">
+                                        <i class="fa-solid fa-user-check text-purple-400 text-[11px]"></i>
+                                        <span class="font-bold text-slate-200 truncate max-w-[220px]" title="${escapeHtml(customerName)}">${escapeHtml(customerName)}</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button onclick="refreshSingleLine('${line.id}', this)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs transition" title="فحص وتحديث">
+                                        <i class="fa-solid fa-rotate"></i>
+                                    </button>
+                                    <button onclick="openEditModal('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-900/50 text-slate-400 hover:text-indigo-300 flex items-center justify-center text-xs transition" title="تعديل اسم صاحب الخط والمسمى">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteLine('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition" title="حذف الخط">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${hasData ? `
+                                <!-- Top Status & Balance/Points Row -->
+                                <div class="flex items-center justify-between gap-1.5 text-[11px] mb-2.5 bg-slate-950/60 px-2.5 py-1.5 rounded-xl border border-slate-800/80">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+                                        ${statusText}
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        ${hasBalance ? `
+                                            <span onclick="openEditModal('${line.id}')" class="text-amber-300 font-bold font-mono cursor-pointer hover:underline flex items-center" title="انقر لتعديل الرصيد">
+                                                <i class="fa-solid fa-coins text-amber-400 ml-1"></i>${balanceVal} ج.م
+                                            </span>
+                                        ` : `
+                                            <button onclick="openEditModal('${line.id}')" class="text-amber-400 text-[10px] bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/25 transition flex items-center gap-1" title="انقر لإدخال الرصيد">
+                                                <i class="fa-solid fa-coins text-[10px]"></i>+ تعيين الرصيد
+                                            </button>
+                                        `}
+                                        ${hasPoints ? `
+                                            <span onclick="openEditModal('${line.id}')" class="text-purple-300 font-bold font-mono cursor-pointer hover:underline flex items-center" title="انقر لتعديل النقاط">
+                                                <i class="fa-solid fa-gift text-purple-400 ml-1"></i>${pointsVal} نقطة
+                                            </span>
+                                        ` : `
+                                            <button onclick="openEditModal('${line.id}')" class="text-purple-400 text-[10px] bg-purple-500/10 hover:bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/25 transition flex items-center gap-1" title="انقر لإدخال النقاط">
+                                                <i class="fa-solid fa-gift text-[10px]"></i>+ تعيين النقاط
+                                            </button>
+                                        `}
+                                    </div>
+                                </div>
+
+                                <!-- Overall Progress & Quota -->
+                                <div class="mb-3 space-y-1.5">
+                                    <div class="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-slate-800 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500 ${progressColor}" style="width: ${activeRemainPct}%"></div>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs font-semibold">
+                                        <div>
+                                            <span class="text-slate-400 text-[11px]">المتبقي الكلي:</span>
+                                            <span class="text-emerald-400 font-bold font-mono text-sm mr-1">${remainGb} GB</span>
+                                            <span class="text-slate-500 text-[10px]">(${activeRemainPct}%)</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-slate-400 text-[11px]">من:</span>
+                                            <span class="text-slate-300 font-mono text-xs mr-1">${activeTotalGb} GB</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Main Quota Capsule -->
+                                <div class="bg-slate-950/80 border border-purple-500/20 rounded-xl p-2.5 space-y-1 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-bold text-purple-300 flex items-center gap-1.5 text-[11px]">
+                                            <i class="fa-solid fa-cube text-purple-400"></i>
+                                            ${escapeHtml(mbName)}
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 font-mono">${mbRemain} / ${mbInitial} GB</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-900">
+                                        <span>تجديد: <strong class="text-slate-200">${mbExpire}</strong></span>
+                                        <span class="font-bold ${mbDays <= 3 ? 'text-amber-400' : 'text-purple-300'}">⏳ ${mbDays} يوم</span>
+                                    </div>
+                                </div>
+
+                                <!-- Collapsible Topup Bundles Accordion (Prevents clutter for 50+ lines) -->
+                                <div class="mt-2.5">
+                                    ${topupBundles.length > 0 ? `
+                                        <details class="group/acc bg-slate-950/70 border border-sky-500/25 rounded-xl transition overflow-hidden">
+                                            <summary class="p-2 cursor-pointer select-none flex items-center justify-between text-xs font-bold text-sky-300 hover:bg-sky-500/5 transition">
+                                                <div class="flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-layer-group text-sky-400"></i>
+                                                    <span>الباقات الإضافية (${topupBundles.length})</span>
+                                                    <span class="text-[10px] font-mono font-normal text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 mr-1">${topupRemainTotal} GB</span>
+                                                </div>
+                                                <i class="fa-solid fa-chevron-down text-[10px] text-sky-400 accordion-icon transition-transform duration-200"></i>
+                                            </summary>
+
+                                            <div class="p-2.5 pt-1 space-y-2 border-t border-slate-900/80">
+                                                ${topupBundles.map((tb, idx) => {
+                                                    const tbInitial = Number(tb.initial_amount || 0);
+                                                    const tbRemain = Number(tb.current_amount || 0);
+                                                    const tbPct = tbInitial > 0 ? Math.round((tbRemain / tbInitial) * 100) : 0;
+                                                    let tbDays = Number(tb.days_left ?? tb.remaining_days ?? tb.days_remaining ?? 0);
+                                                    if (tbDays <= 0 && daysLeft > 0) {
+                                                        tbDays = daysLeft;
+                                                    }
+                                                    let tbExpire = (tb.expire_date && tb.expire_date !== 'غير محدد') ? tb.expire_date : null;
+                                                    if (!tbExpire) {
+                                                        if (expireDate && expireDate !== 'غير محدد') {
+                                                            tbExpire = expireDate;
+                                                        } else if (tbDays > 0) {
+                                                            const d = new Date();
+                                                            d.setDate(d.getDate() + tbDays);
+                                                            tbExpire = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 12:00 AM`;
+                                                        } else {
+                                                            tbExpire = 'غير محدد';
+                                                        }
+                                                    }
+                                                    return `
+                                                        <div class="bg-slate-900/90 border border-sky-500/20 rounded-lg p-2 space-y-1 text-[11px]">
+                                                            <div class="flex items-center justify-between">
+                                                                <span class="font-bold text-sky-200">${escapeHtml(tb.name)}</span>
+                                                                <span class="font-mono text-sky-300 font-bold">${tbRemain} / ${tbInitial} GB</span>
+                                                            </div>
+                                                            <div class="w-full bg-slate-950 rounded-full h-1.5 p-0.5 overflow-hidden">
+                                                                <div class="h-full rounded-full bg-sky-500" style="width: ${tbPct}%"></div>
+                                                            </div>
+                                                            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                                                                <span>انتهاء: <strong class="text-slate-300">${tbExpire}</strong></span>
+                                                                <span class="font-bold ${tbDays <= 3 ? 'text-amber-400' : 'text-sky-300'}">⏳ متبقي ${tbDays} يوم</span>
+                                                            </div>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        </details>
+                                    ` : `
+                                        <div class="py-1 px-2.5 rounded-lg bg-slate-950/40 border border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between">
+                                            <span><i class="fa-solid fa-circle-info ml-1 text-slate-600"></i>لا توجد باقات إضافية</span>
+                                            <span class="text-slate-600 font-mono">0 باقة</span>
+                                        </div>
+                                    `}
+                                </div>
+                            ` : `
+                                <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center my-3 space-y-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
+                                    <p class="text-xs text-rose-400 font-medium">${error ? escapeHtml(error) : 'لم يتم جلب البيانات بعد'}</p>
+                                    <button onclick="refreshSingleLine('${line.id}', this)" class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold border border-slate-700">
+                                        فحص الآن
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500">
+                            <span><i class="fa-solid fa-clock-rotate-left ml-1"></i>${hasData ? lastUpdated : (line.last_checked || 'غير محدد')}</span>
+                            ${line.notes ? `<span class="truncate max-w-[130px]" title="${escapeHtml(line.notes)}">📝 ${escapeHtml(line.notes)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render High-Density Table View (Ideal for 50+ lines)
+        function renderTable(lines) {
+            const tbody = document.getElementById('tableBody');
+            if (!lines || lines.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-500">لا توجد خطوط تطابق الفلتر أو البحث.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = lines.map((line, idx) => {
+                const raw = line.last_data;
+                const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+                const hasData = Boolean(raw && raw.success && (q.total_gb !== undefined || q.remain_gb !== undefined));
+
+                const totalGb = Number(q.total_gb ?? 0);
+                const remainGb = Number(q.remain_gb ?? 0);
+                const remainPct = Number(q.remain_percent ?? (totalGb > 0 ? Math.round((remainGb / totalGb) * 100) : 0));
+                const customerName = line.customer_name || q.customer_name || 'مشترك وي';
+                const statusTag = q.status_tag || q.status || (remainPct <= 10 ? 'critical' : remainPct <= 25 ? 'warning' : 'good');
+                const statusText = q.status_text || (statusTag === 'critical' ? 'حرج' : statusTag === 'warning' ? 'تحذير' : 'ممتاز');
+                const rawBal = (line.balance !== undefined && line.balance !== null) ? line.balance : q.balance;
+                const rawPts = (line.points !== undefined && line.points !== null) ? line.points : q.points;
+                const hasBalance = rawBal !== undefined && rawBal !== null && !isNaN(rawBal) && rawBal !== '';
+                const hasPoints = rawPts !== undefined && rawPts !== null && !isNaN(rawPts) && rawPts !== '';
+                const balanceVal = hasBalance ? Number(rawBal).toFixed(2) : null;
+                const pointsVal = hasPoints ? parseInt(rawPts, 10).toLocaleString('en-US') : null;
+
+                const bundlesList = Array.isArray(q.bundles) ? q.bundles : [];
+                let mainBundle = q.main_bundle || (bundlesList.find(b => (b.type || '').toLowerCase().includes('main')) || bundlesList[0]);
+                let topupBundles = (Array.isArray(q.topup_bundles) ? q.topup_bundles : (bundlesList.filter(b => b !== mainBundle)))
+                    .filter(b => Number(b.current_amount || 0) > 0);
+
+                const mbRemain = mainBundle ? Number(mainBundle.current_amount ?? remainGb) : remainGb;
+                const mbInitial = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
+                const mbDays = mainBundle ? Number(mainBundle.days_left ?? 0) : 0;
+
+                const mbCapacity = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
+                const topupCapacity = topupBundles.reduce((acc, b) => acc + Number(b.initial_amount || 0), 0);
+                const activeTotalGb = (mbCapacity + topupCapacity) > 0 ? (mbCapacity + topupCapacity) : totalGb;
+                const activeRemainPct = activeTotalGb > 0 ? Math.min(100, Math.round((remainGb / activeTotalGb) * 100)) : remainPct;
+
+                let badgeColor = statusTag === 'critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : (statusTag === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30');
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-3 font-mono text-slate-500">${idx + 1}</td>
+                        <td class="p-3">
+                            <span class="font-mono font-bold text-purple-300 text-xs">${line.landline}</span>
+                            <div class="text-[11px] text-slate-400 truncate max-w-[140px]">${escapeHtml(line.label)}</div>
+                        </td>
+                        <td class="p-3">
+                            <div class="font-bold text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-user text-purple-400 text-[10px]"></i>
+                                ${escapeHtml(customerName)}
+                            </div>
+                        </td>
+                        <td class="p-3 font-mono">
+                            ${hasBalance ? `
+                                <div onclick="openEditModal('${line.id}')" class="text-amber-300 font-bold cursor-pointer hover:underline text-xs flex items-center gap-1" title="انقر لتعديل الرصيد">
+                                    <i class="fa-solid fa-coins text-[10px] text-amber-400"></i>${balanceVal} ج.م
+                                </div>
+                            ` : `
+                                <button onclick="openEditModal('${line.id}')" class="text-amber-400 text-[10px] bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/25 transition">
+                                    + رصيد
+                                </button>
+                            `}
+                            ${hasPoints ? `
+                                <div onclick="openEditModal('${line.id}')" class="text-[10px] text-purple-300 cursor-pointer hover:underline flex items-center gap-1 mt-0.5" title="انقر لتعديل النقاط">
+                                    <i class="fa-solid fa-gift text-[9px] text-purple-400"></i>${pointsVal} نقطة
+                                </div>
+                            ` : `
+                                <button onclick="openEditModal('${line.id}')" class="text-purple-400 text-[10px] bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/25 transition mt-1 block">
+                                    + نقاط
+                                </button>
+                            `}
+                        </td>
+                        <td class="p-3">
+                            ${hasData ? `
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold font-mono text-emerald-400 text-sm">${remainGb}</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">/ ${activeTotalGb} GB (${activeRemainPct}%)</span>
+                                </div>
+                                <div class="w-28 bg-slate-950 rounded-full h-1.5 overflow-hidden mt-1">
+                                    <div class="h-full bg-emerald-500" style="width: ${activeRemainPct}%"></div>
+                                </div>
+                            ` : `<span class="text-rose-400">غير متاح</span>`}
+                        </td>
+                        <td class="p-3 text-[11px]">
+                            ${hasData ? `
+                                <div class="font-semibold text-slate-200">${mbRemain} / ${mbInitial} GB</div>
+                                <div class="text-purple-300 text-[10px]">⏳ متبقي ${mbDays} يوم</div>
+                            ` : '-'}
+                        </td>
+                        <td class="p-3 text-[11px]">
+                            ${topupBundles.length > 0 ? `
+                                <span class="px-2 py-0.5 rounded-md font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                    ${topupBundles.length} باقة إضافية نشطة
+                                </span>
+                            ` : `<span class="text-slate-500">لا يوجد</span>`}
+                        </td>
+                        <td class="p-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="refreshSingleLine('${line.id}', this)" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px]" title="تحديث">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                                <button onclick="openEditModal('${line.id}')" class="w-6 h-6 rounded bg-slate-800 hover:bg-indigo-900/50 text-slate-400 hover:text-indigo-300 flex items-center justify-center text-[10px]" title="تعديل">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteLine('${line.id}')" class="w-6 h-6 rounded bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 flex items-center justify-center text-[10px]" title="حذف">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Export Report to CSV / Excel
+        function exportToCSV() {
+            if (!allLines || allLines.length === 0) {
+                showToast("لا توجد خطوط للتصدير", "error");
+                return;
+            }
+
+            const headers = ["رقم الخط", "المسمى", "اسم صاحب الخط", "الرصيد (ج.م)", "النقاط", "المتبقي الكلي (GB)", "السعة الكلية (GB)", "نسبة المتبقي %", "الباقة الأساسية", "موعد تجديد الأساسية", "عدد الباقات الإضافية", "حالة الخط", "آخر فحص"];
+            const rows = allLines.map(l => {
+                const raw = l.last_data;
+                const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+                const topups = (q.topup_bundles || []);
+                const mb = q.main_bundle || {};
+                const bal = l.balance ?? q.balance ?? '';
+                const pts = l.points ?? q.points ?? '';
+                return [
+                    `"${l.landline}"`,
+                    `"${(l.label || '').replace(/"/g, '""')}"`,
+                    `"${(l.customer_name || q.customer_name || '').replace(/"/g, '""')}"`,
+                    bal,
+                    pts,
+                    q.remain_gb ?? 0,
+                    q.total_gb ?? 0,
+                    q.remain_percent ?? 0,
+                    `"${(mb.name || q.offer_name || '').replace(/"/g, '""')}"`,
+                    `"${mb.expire_date || q.expire_date || ''}"`,
+                    topups.length,
+                    `"${q.status_text || 'غير محدد'}"`,
+                    `"${q.last_updated || l.last_checked || ''}"`
+                ];
+            });
+
+            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `تقرير_خطوط_وي_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("تم تصدير ملف التقرير بنجاح!", "success");
+        }
+
+        // Edit Modal
+        function openEditModal(lineId) {
+            const line = allLines.find(l => l.id === lineId);
+            if (!line) return;
+            const raw = line.last_data;
+            const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
+
+            document.getElementById('editLineId').value = line.id;
+            document.getElementById('editModalSubTitle').textContent = `تعديل بيانات الخط: ${line.landline}`;
+            document.getElementById('editCustomerName').value = line.customer_name || q.customer_name || '';
+            document.getElementById('editLabel').value = line.label || '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editNotes').value = line.notes || '';
+
+            const balVal = (line.balance !== undefined && line.balance !== null) ? line.balance : ((q.balance !== undefined && q.balance !== null) ? q.balance : '');
+            const ptsVal = (line.points !== undefined && line.points !== null) ? line.points : ((q.points !== undefined && q.points !== null) ? q.points : '');
+            document.getElementById('editBalance').value = balVal !== '' ? balVal : '';
+            document.getElementById('editPoints').value = ptsVal !== '' ? ptsVal : '';
+
+            document.getElementById('modalEditLine').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('modalEditLine').classList.add('hidden');
+        }
+
+        async function submitEditLine(e) {
+            e.preventDefault();
+            const lineId = document.getElementById('editLineId').value;
+            const customer_name = document.getElementById('editCustomerName').value.trim();
+            const label = document.getElementById('editLabel').value.trim();
+            const password = document.getElementById('editPassword').value;
+            const notes = document.getElementById('editNotes').value.trim();
+            const balanceInput = document.getElementById('editBalance').value.trim();
+            const pointsInput = document.getElementById('editPoints').value.trim();
+
+            const body = { customer_name, label, notes };
+            if (password) body.password = password;
+            if (balanceInput !== '') {
+                body.balance = parseFloat(balanceInput);
+            }
+            if (pointsInput !== '') {
+                body.points = parseInt(pointsInput, 10);
+            }
+
+            try {
+                const res = await fetch(`/api/lines/${lineId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("تم تحديث بيانات الخط بنجاح!", "success");
+                    closeEditModal();
+                    await loadDashboard();
+                } else {
+                    showToast(data.detail || "فشل التحديث", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ أثناء الاتصال بالخادم", "error");
+            }
+        }
+
+        // Add Modal
+        function openAddModal() {
+            document.getElementById('formAddLine').reset();
+            document.getElementById('modalAddLine').classList.remove('hidden');
+        }
+        function closeAddModal() {
+            document.getElementById('modalAddLine').classList.add('hidden');
+        }
+
+        async function submitAddLine(e) {
+            e.preventDefault();
+            const landline = document.getElementById('addLandline').value.trim();
+            const password = document.getElementById('addPassword').value;
+            const customer_name = document.getElementById('addCustomerName').value.trim();
+            const label = document.getElementById('addLabel').value.trim();
+            const notes = document.getElementById('addNotes').value.trim();
+            const balanceInput = document.getElementById('addBalance').value.trim();
+            const pointsInput = document.getElementById('addPoints').value.trim();
+
+            const btn = document.getElementById('btnSubmitAdd');
+            const txt = document.getElementById('btnSubmitAddText');
+            const spin = document.getElementById('spinnerAdd');
+
+            btn.disabled = true;
+            txt.textContent = "جاري الفحص والإضافة...";
+            spin.classList.remove('hidden');
+
+            const payload = {
+                landline,
+                password,
+                label,
+                customer_name,
+                notes,
+                fetch_now: true
+            };
+            if (balanceInput !== '') payload.balance = parseFloat(balanceInput);
+            if (pointsInput !== '') payload.points = parseInt(pointsInput, 10);
+
+            try {
+                const res = await fetch('/api/lines', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    showToast("تمت إضافة الخط بنجاح! جاري جلب الباقة...", "success");
+                    closeAddModal();
+                    setTimeout(loadDashboard, 3000);
+                } else {
+                    showToast(data.detail || data.message || "حدث خطأ أثناء الإضافة", "error");
+                }
+            } catch (err) {
+                showToast("فشل الاتصال بالخادم", "error");
+            } finally {
+                btn.disabled = false;
+                txt.textContent = "حفظ وفحص الجيجات";
+                spin.classList.add('hidden');
+            }
+        }
+
+        // Actions
+        async function refreshSingleLine(lineId, btn) {
+            const icon = btn.querySelector('i');
+            if (icon) icon.classList.add('fa-spin');
+            btn.disabled = true;
+            showToast("جاري فحص باقة الخط من خوادم وي...", "info");
+
+            try {
+                const res = await fetch(`/api/lines/${lineId}/refresh`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success && data.data && data.data.success) {
+                    showToast("تم تحديث باقة الخط بنجاح!", "success");
+                } else {
+                    showToast(data.data ? data.data.error : "فشل الاستعلام عن الخط", "error");
+                }
+                await loadDashboard();
+            } catch (err) {
+                showToast("حدث خطأ أثناء الاتصال بالخادم", "error");
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+                btn.disabled = false;
+            }
+        }
+
+        async function refreshAllLines() {
+            const btn = document.getElementById('btnRefreshAll');
+            const icon = document.getElementById('iconRefreshAll');
+            btn.disabled = true;
+            icon.classList.add('fa-spin');
+            showToast("تم بدء تحديث جميع الخطوط في الخلفية...", "info");
+
+            try {
+                const res = await fetch('/api/lines/refresh-all', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    setTimeout(async () => {
+                        await loadDashboard();
+                        showToast("اكتمل تحديث الخطوط!", "success");
+                    }, 3500);
+                }
+            } catch (err) {
+                showToast("فشل بدء التحديث", "error");
+            } finally {
+                setTimeout(() => {
+                    icon.classList.remove('fa-spin');
+                    btn.disabled = false;
+                }, 4000);
+            }
+        }
+
+        async function deleteLine(lineId) {
+            if (!confirm("هل أنت متأكد من حذف هذا الخط من قائمة المتابعة؟")) return;
+            try {
+                const res = await fetch(`/api/lines/${lineId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("تم حذف الخط بنجاح", "success");
+                    await loadDashboard();
+                } else {
+                    showToast(data.detail || "فشل حذف الخط", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ أثناء الحذف", "error");
+            }
+        }
+
+        // Settings Modal
+        async function openSettingsModal() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                if (data.success && data.settings) {
+                    const s = data.settings;
+                    document.getElementById('settingTelegramEnabled').checked = !!s.telegram_enabled;
+                    document.getElementById('settingBotToken').value = s.telegram_bot_token || '';
+                    document.getElementById('settingChatId').value = s.telegram_chat_id || '';
+                    document.getElementById('settingThresholdPercent').value = s.alert_threshold_percent || 20;
+                    document.getElementById('settingThresholdGb').value = s.alert_threshold_gb || 15;
+                    document.getElementById('settingDaysLeft').value = s.alert_days_left || 3;
+                    const mins = s.auto_refresh_minutes || (s.auto_refresh_hours ? s.auto_refresh_hours * 60 : 30);
+                    document.getElementById('settingAutoRefreshMinutes').value = mins;
+                    document.getElementById('testTelegramStatus').textContent = '';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+            document.getElementById('modalSettings').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('modalSettings').classList.add('hidden');
+        }
+
+        async function submitSettings(e) {
+            e.preventDefault();
+            const body = {
+                telegram_enabled: document.getElementById('settingTelegramEnabled').checked,
+                telegram_bot_token: document.getElementById('settingBotToken').value.trim(),
+                telegram_chat_id: document.getElementById('settingChatId').value.trim(),
+                alert_threshold_percent: parseInt(document.getElementById('settingThresholdPercent').value) || 20,
+                alert_threshold_gb: parseInt(document.getElementById('settingThresholdGb').value) || 15,
+                alert_days_left: parseInt(document.getElementById('settingDaysLeft').value) || 3,
+                auto_refresh_minutes: parseInt(document.getElementById('settingAutoRefreshMinutes').value) || 30,
+                auto_refresh_hours: Math.max(1, Math.round((parseInt(document.getElementById('settingAutoRefreshMinutes').value) || 30) / 60)),
+            };
+
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("تم حفظ الإعدادات بنجاح!", "success");
+                    closeSettingsModal();
+                } else {
+                    showToast("فشل حفظ الإعدادات", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ أثناء الحفظ", "error");
+            }
+        }
+
+        async function testTelegramBtn() {
+            const bot_token = document.getElementById('settingBotToken').value.trim();
+            const chat_id = document.getElementById('settingChatId').value.trim();
+            const statusEl = document.getElementById('testTelegramStatus');
+
+            if (!bot_token || !chat_id) {
+                statusEl.className = "text-xs text-rose-400";
+                statusEl.textContent = "يرجى كتابة Token و Chat ID أولاً";
+                return;
+            }
+
+            statusEl.className = "text-xs text-amber-400";
+            statusEl.textContent = "جاري إرسال التجربة...";
+
+            try {
+                const res = await fetch('/api/telegram/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bot_token, chat_id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    statusEl.className = "text-xs text-emerald-400 font-bold";
+                    statusEl.textContent = "✅ وصلت الرسالة بنجاح!";
+                    showToast(data.message, "success");
+                } else {
+                    statusEl.className = "text-xs text-rose-400 font-bold";
+                    statusEl.textContent = "❌ فشل الإرسال";
+                    showToast(data.error, "error");
+                }
+            } catch (err) {
+                statusEl.className = "text-xs text-rose-400";
+                statusEl.textContent = "خطأ في الشبكة";
+            }
+        }
+
+        // Helpers
+        function togglePass(id, btn) {
+            const input = document.getElementById(id);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye text-xs';
+            }
+        }
+
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastMessage');
+
+            text.textContent = msg;
+            if (type === "success") {
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else if (type === "error") {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-400 text-lg";
+            } else {
+                icon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[m]);
+        }
+    </script>
+</body>
+</html>
