@@ -46,6 +46,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def enforce_domain_redirect(request: Request, call_next):
+    host = request.headers.get("host", "").split(":")[0]
+    if host == "197.164.101.4":
+        redirect_url = f"https://197.164.101.4.sslip.io{request.url.path}"
+        if request.url.query:
+            redirect_url += f"?{request.url.query}"
+        return RedirectResponse(url=redirect_url, status_code=301)
+    return await call_next(request)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
