@@ -156,6 +156,9 @@
                 const data = await res.json();
 
                 if (res.ok && data.success) {
+                    if (data.token) {
+                        localStorage.setItem('we_token', data.token);
+                    }
                     btnText.textContent = "تم الدخول بنجاح! جاري التحويل...";
                     window.location.href = '/';
                 } else {

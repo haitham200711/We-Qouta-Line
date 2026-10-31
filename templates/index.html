@@ -668,10 +668,17 @@
             setInterval(loadDashboard, 60000); // Poll every 60s
         });
 
-        // Wrapper to handle 401 Unauthorized globally
+        // Wrapper to handle 401 Unauthorized globally and attach token if available
         async function apiFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            const token = localStorage.getItem('we_token');
+            if (token && !options.headers['Authorization']) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const res = await fetch(url, options);
             if (res.status === 401) {
+                localStorage.removeItem('we_token');
                 window.location.href = '/login';
                 throw new Error("Unauthorized");
             }
@@ -697,6 +704,7 @@
             try {
                 await fetch('/api/auth/logout', { method: 'POST' });
             } finally {
+                localStorage.removeItem('we_token');
                 window.location.href = '/login';
             }
         }
