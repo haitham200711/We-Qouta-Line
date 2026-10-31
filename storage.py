@@ -221,10 +221,25 @@ class Storage:
     self._save_json(LINES_FILE, lines)
     return new_line
 
+  def clear_line_session(self, landline: str):
+    if not landline:
+      return
+    import shutil
+    session_dir = os.path.join(
+        self.base_dir, "data", "we_sessions", f"prof_{landline.strip()}"
+    )
+    if os.path.exists(session_dir):
+      try:
+        shutil.rmtree(session_dir, ignore_errors=True)
+      except Exception:
+        pass
+
   def update_line(self, line_id: str, updates: Dict[str, Any]) -> bool:
     lines = self.get_lines()
     for line in lines:
       if line.get("id") == line_id:
+        if "password" in updates and updates["password"] != line.get("password"):
+          self.clear_line_session(line.get("landline"))
         line.update(updates)
         if isinstance(line.get("last_data"), dict):
           if "balance" in updates and updates["balance"] is not None:
@@ -268,6 +283,9 @@ class Storage:
 
   def delete_line(self, line_id: str) -> bool:
     lines = self.get_lines()
+    target = next((l for l in lines if l.get("id") == line_id), None)
+    if target:
+      self.clear_line_session(target.get("landline"))
     orig_len = len(lines)
     lines = [l for l in lines if l.get("id") != line_id]
     if len(lines) < orig_len:
@@ -277,8 +295,11 @@ class Storage:
 
   def delete_lines(self, line_ids: List[str]) -> int:
     lines = self.get_lines()
-    orig_len = len(lines)
     id_set = set(line_ids)
+    for l in lines:
+      if l.get("id") in id_set:
+        self.clear_line_session(l.get("landline"))
+    orig_len = len(lines)
     lines = [l for l in lines if l.get("id") not in id_set]
     deleted_count = orig_len - len(lines)
     if deleted_count > 0:

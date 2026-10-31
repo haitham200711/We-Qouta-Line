@@ -115,6 +115,8 @@ class WEApiClient:
                 parsed["balance"] = result["balance"]
             if result.get("points") is not None:
                 parsed["points"] = result["points"]
+            if result.get("session_cached"):
+                parsed["session_cached"] = True
             return parsed
 
         except Exception as e:

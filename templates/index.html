@@ -1892,6 +1892,9 @@
                                 <button onclick="refreshSingleLine('${line.id}', this)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-purple-600/30 text-slate-300 hover:text-purple-300 border border-slate-700/80 flex items-center justify-center text-xs transition" title="فحص وتحديث الخط">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
+                                <button onclick="resetLineSession('${line.id}', '${line.landline}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-amber-600/30 text-slate-400 hover:text-amber-400 border border-slate-700/80 flex items-center justify-center text-xs transition" title="تجديد جلسة الخط (إعادة تسجيل الدخول)">
+                                    <i class="fa-solid fa-key"></i>
+                                </button>
                                 <button onclick="openEditModal('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 border border-slate-700/80 flex items-center justify-center text-xs transition" title="تعديل بيانات الخط">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -2069,6 +2072,9 @@
                             <button onclick="openEditModal('${line.id}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
                                 <i class="fa-solid fa-pen-to-square"></i>
                                 <span>تعديل</span>
+                            </button>
+                            <button onclick="resetLineSession('${line.id}', '${line.landline}')" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-amber-900/40 text-slate-400 hover:text-amber-400 border border-slate-700 flex items-center justify-center text-xs transition" title="تجديد الجلسة">
+                                <i class="fa-solid fa-key"></i>
                             </button>
                             <button onclick="deleteLine('${line.id}')" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center text-xs transition">
                                 <i class="fa-solid fa-trash-can"></i>
@@ -2395,6 +2401,22 @@
             } finally {
                 if (icon) icon.classList.remove('fa-spin');
                 btn.disabled = false;
+            }
+        }
+
+        async function resetLineSession(lineId, landline) {
+            if (!confirm(`هل تريد إعادة تعيين وتجديد جلسة الخط ${landline}؟\nسيتم حذف الكوكيز المخزنة للخط وإعادة تسجيل الدخول بالكامل في الفحص القادم.`)) return;
+            try {
+                const res = await apiFetch(`/api/lines/${lineId}/reset-session`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || "تمت إعادة تعيين الجلسة بنجاح", "success");
+                    await loadDashboard();
+                } else {
+                    showToast(data.detail || "فشل إعادة تعيين الجلسة", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ أثناء إعادة تعيين الجلسة", "error");
             }
         }
 

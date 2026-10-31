@@ -41,7 +41,24 @@ function getPythonPath() {
 
 async function fetchQuota(landlineNumber, password) {
     const chromePath = getChromePath();
-    const profileDir = path.join(os.tmpdir(), `we_chrome_${Date.now()}_${Math.floor(Math.random()*10000)}`);
+    
+    // --- Session Tokens Architecture ---
+    // Persistent profile per landline preserves cookies, localStorage, IndexedDB and active session tokens.
+    const sessionsBaseDir = path.join(__dirname, 'data', 'we_sessions');
+    if (!fs.existsSync(sessionsBaseDir)) {
+        try { fs.mkdirSync(sessionsBaseDir, { recursive: true }); } catch(e) {}
+    }
+    const profileDir = path.join(sessionsBaseDir, `prof_${landlineNumber}`);
+    if (!fs.existsSync(profileDir)) {
+        try { fs.mkdirSync(profileDir, { recursive: true }); } catch(e) {}
+    }
+
+    // Clean ephemeral lock files from previous runs to prevent Chrome "Profile in use" lockouts
+    const lockFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket', 'lockfile'];
+    lockFiles.forEach(f => {
+        try { fs.unlinkSync(path.join(profileDir, f)); } catch(e) {}
+    });
+
     const port = 9222 + Math.floor(Math.random() * 500);
 
     const chrome = spawn(chromePath, [
@@ -135,6 +152,16 @@ async function fetchQuota(landlineNumber, password) {
                             if (name) customerNameResult = name;
                         } catch(e) {}
                     }, 250);
+                } else if (u.includes('GenerateCaptcha')) {
+                    setTimeout(async () => {
+                        try {
+                            const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
+                            const data = JSON.parse(bodyRes.result?.body || '{}');
+                            if (data.status === 'Blocked') {
+                                authError = 'تم تجاوز الحد الأقصى للمحاولات لدى وي مؤقتاً (حظر مؤقت لمدة ساعة) - يرجى الانتظار حتى انتهاء فترة التهدئة';
+                            }
+                        } catch(e) {}
+                    }, 200);
                 } else if (u.includes('/auth/userAuthenticate')) {
                     setTimeout(async () => {
                         try {
@@ -143,7 +170,7 @@ async function fetchQuota(landlineNumber, password) {
                             if (data.header?.retCode !== '0') {
                                 const err = data.header?.errorMsg || data.header?.description;
                                 if (err && (err.includes('attempts') || err.includes('maximum'))) {
-                                    authError = 'تم تجاوز الحد الأقصى للمحاولات لدى وي. يرجى الانتظار لمدة ساعة والمحاولة مجدداً.';
+                                    authError = 'تم تجاوز الحد الأقصى للمحاولات لدى وي مؤقتاً (حظر مؤقت لمدة ساعة) - يرجى الانتظار حتى انتهاء فترة التهدئة';
                                 } else if (err && (err.includes('code is incorrect') || err.includes('كود التحقق'))) {
                                     // Captcha error - will be retried
                                 } else {
@@ -191,196 +218,250 @@ async function fetchQuota(landlineNumber, password) {
             }
         });
 
-        await send('Page.navigate', { url: 'https://my.te.eg/echannel/#/login' });
+        // ==========================================
+        // TIER 1: FAST PATH VIA ACTIVE SESSION TOKEN
+        // ==========================================
+        const defaultProfDir = path.join(profileDir, 'Default');
+        const hasExistingSession = fs.existsSync(defaultProfDir);
 
-        // Wait dynamically until service number input is mounted (up to 20s)
-        let mounted = false;
-        for (let i = 0; i < 40; i++) {
-            const chk = await send('Runtime.evaluate', {
-                expression: `!!(document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])'))`,
+        if (hasExistingSession) {
+            // Attempt to load dashboard directly using cached session cookies and tokens
+            await send('Page.navigate', { url: 'https://my.te.eg/echannel/#/overview' });
+
+            const sessionWaitStart = Date.now();
+            while (Date.now() - sessionWaitStart < 6500) {
+                if (quotaResult || authError) break;
+
+                // Check if redirected back to login page (session expired)
+                const curUrlCheck = await send('Runtime.evaluate', {
+                    expression: 'window.location.href',
+                    returnByValue: true
+                });
+                const curUrl = val(curUrlCheck);
+                if (curUrl && curUrl.includes('/login')) {
+                    // Session expired, break fast path and execute login
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
+
+        // ==========================================
+        // TIER 2: FULL LOGIN FLOW (First run or Expired Session)
+        // ==========================================
+        if (!quotaResult && !authError) {
+            const curUrlCheck = await send('Runtime.evaluate', {
+                expression: 'window.location.href',
                 returnByValue: true
             });
-            if (val(chk)) {
-                mounted = true;
-                break;
+            const curUrl = val(curUrlCheck);
+            if (!curUrl || !curUrl.includes('/login')) {
+                await send('Page.navigate', { url: 'https://my.te.eg/echannel/#/login' });
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        if (!mounted) {
-            throw new Error('تعذر تحميل صفحة تسجيل الدخول، يرجى المحاولة لاحقاً');
-        }
-
-        await new Promise(r => setTimeout(r, 500));
-
-        // 1. Focus & Type Service Number
-        await send('Runtime.evaluate', {
-            expression: `(() => {
-                const el = document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])');
-                if (el) { el.focus(); el.click(); }
-            })()`
-        });
-        for (const c of landlineNumber) {
-            await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
-            await send('Input.dispatchKeyEvent', { type: 'keyUp' });
-            await new Promise(r => setTimeout(r, 20));
-        }
-        await send('Runtime.evaluate', {
-            expression: `(() => {
-                const el = document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])');
-                if (el) {
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    el.blur();
+            // Wait dynamically until service number input is mounted (up to 20s)
+            let mounted = false;
+            for (let i = 0; i < 40; i++) {
+                const chk = await send('Runtime.evaluate', {
+                    expression: `!!(document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])'))`,
+                    returnByValue: true
+                });
+                if (val(chk)) {
+                    mounted = true;
+                    break;
                 }
-            })()`
-        });
-        await new Promise(r => setTimeout(r, 800));
+                await new Promise(r => setTimeout(r, 500));
+            }
 
-        // 2. Select Internet from dropdown if displayed (for landlines)
-        const hasSelect = await send('Runtime.evaluate', {
-            expression: `!!(document.querySelector('.ant-select-selector') || document.querySelector('.ant-select'))`,
-            returnByValue: true
-        });
-        if (val(hasSelect)) {
+            if (!mounted) {
+                throw new Error('تعذر تحميل صفحة تسجيل الدخول، يرجى المحاولة لاحقاً');
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+
+            // 1. Focus & Type Service Number
             await send('Runtime.evaluate', {
                 expression: `(() => {
-                    const sel = document.querySelector('.ant-select-selector') || document.querySelector('.ant-select');
-                    if (sel) { sel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); sel.click(); }
+                    const el = document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])');
+                    if (el) { el.focus(); el.click(); }
                 })()`
             });
-            await new Promise(r => setTimeout(r, 600));
+            for (const c of landlineNumber) {
+                await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
+                await send('Input.dispatchKeyEvent', { type: 'keyUp' });
+                await new Promise(r => setTimeout(r, 20));
+            }
             await send('Runtime.evaluate', {
                 expression: `(() => {
-                    const opts = Array.from(document.querySelectorAll('.ant-select-item-option, [role="option"]'));
-                    const o = opts.find(x => x.innerText.toLowerCase().includes('internet') || x.innerText.includes('إنترنت'));
-                    if (o) { o.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); o.click(); }
+                    const el = document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])');
+                    if (el) {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        el.blur();
+                    }
                 })()`
             });
             await new Promise(r => setTimeout(r, 800));
-        }
 
-        // 3. Focus & Type Password
-        await send('Runtime.evaluate', {
-            expression: `(() => {
-                const p = document.querySelector('input[type="password"]');
-                if (p) { p.focus(); p.click(); }
-            })()`
-        });
-        for (const c of password) {
-            await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
-            await send('Input.dispatchKeyEvent', { type: 'keyUp' });
-            await new Promise(r => setTimeout(r, 20));
-        }
-        await send('Runtime.evaluate', {
-            expression: `(() => {
-                const p = document.querySelector('input[type="password"]');
-                if (p) {
-                    p.dispatchEvent(new Event('input', { bubbles: true }));
-                    p.dispatchEvent(new Event('change', { bubbles: true }));
-                    p.blur();
-                }
-            })()`
-        });
-        await new Promise(r => setTimeout(r, 800));
-
-        // 4. Click Login Button
-        await send('Runtime.evaluate', {
-            expression: `(() => {
-                const btn = Array.from(document.querySelectorAll('button')).find(b => 
-                    b.innerText.includes('Login') || b.innerText.includes('تسجيل الدخول') || b.innerText.includes('دخول') || b.type === 'submit'
-                );
-                if (btn && !btn.disabled) btn.click();
-            })()`
-        });
-
-        // 5. Intelligent Captcha Solver & CBS API Listener (up to 30s)
-        const solverScript = path.join(__dirname, 'solve_captcha.py');
-        const pythonBin = getPythonPath();
-        let lastSolvedImg = '';
-
-        const startTime = Date.now();
-        while (Date.now() - startTime < 35000) {
-            if (quotaResult || authError) break;
-
-            // Check if Captcha Modal is present
-            const modalCheck = await send('Runtime.evaluate', {
-                expression: `(() => {
-                    const m = document.querySelector('.ant-modal-content');
-                    if (!m) return null;
-                    const img = Array.from(m.querySelectorAll('img')).find(i => i.src && i.src.startsWith('data:image'));
-                    const inp = m.querySelector('input');
-                    const okBtn = Array.from(m.querySelectorAll('button')).find(b => b.innerText.includes('Ok') || b.innerText.includes('حسنا'));
-                    return {
-                        hasModal: true,
-                        imgSrc: img ? img.src : null,
-                        hasInput: !!inp,
-                        okDisabled: okBtn ? okBtn.disabled : true
-                    };
-                })()`,
+            // 2. Select Internet from dropdown if displayed (for landlines)
+            const hasSelect = await send('Runtime.evaluate', {
+                expression: `!!(document.querySelector('.ant-select-selector') || document.querySelector('.ant-select'))`,
                 returnByValue: true
             });
-
-            const mc = val(modalCheck);
-            if (mc?.hasModal && mc?.imgSrc && mc.imgSrc !== lastSolvedImg && fs.existsSync(solverScript)) {
-                lastSolvedImg = mc.imgSrc;
-                const b64Data = mc.imgSrc.split(',')[1];
-                const tmpImg = path.join(os.tmpdir(), `cap_${Date.now()}_${Math.floor(Math.random()*1000)}.png`);
-                fs.writeFileSync(tmpImg, Buffer.from(b64Data, 'base64'));
-
-                let solvedCode = '';
-                try {
-                    solvedCode = execSync(`"${pythonBin}" "${solverScript}" "${tmpImg}"`, { timeout: 6000 }).toString().trim();
-                } catch(e) {}
-                try { fs.unlinkSync(tmpImg); } catch(e) {}
-
-                if (solvedCode && solvedCode.length >= 4) {
-                    await send('Runtime.evaluate', {
-                        expression: `(() => {
-                            const m = document.querySelector('.ant-modal-content');
-                            const inp = m ? m.querySelector('input') : null;
-                            if (inp) { inp.focus(); inp.click(); }
-                        })()`
-                    });
-                    for (const c of solvedCode) {
-                        await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
-                        await send('Input.dispatchKeyEvent', { type: 'keyUp' });
-                        await new Promise(r => setTimeout(r, 20));
-                    }
-                    await send('Runtime.evaluate', {
-                        expression: `(() => {
-                            const m = document.querySelector('.ant-modal-content');
-                            const inp = m ? m.querySelector('input') : null;
-                            const okBtn = m ? Array.from(m.querySelectorAll('button')).find(b => b.innerText.includes('Ok') || b.innerText.includes('حسنا')) : null;
-                            if (inp) {
-                                inp.dispatchEvent(new Event('input', { bubbles: true }));
-                                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            if (okBtn && !okBtn.disabled) okBtn.click();
-                        })()`
-                    });
-                } else {
-                    // Click refresh icon on captcha modal
-                    await send('Runtime.evaluate', {
-                        expression: `(() => {
-                            const m = document.querySelector('.ant-modal-content');
-                            const imgs = m ? Array.from(m.querySelectorAll('img')) : [];
-                            if (imgs[1]) imgs[1].click();
-                        })()`
-                    });
-                }
+            if (val(hasSelect)) {
+                await send('Runtime.evaluate', {
+                    expression: `(() => {
+                        const sel = document.querySelector('.ant-select-selector') || document.querySelector('.ant-select');
+                        if (sel) { sel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); sel.click(); }
+                    })()`
+                });
+                await new Promise(r => setTimeout(r, 600));
+                await send('Runtime.evaluate', {
+                    expression: `(() => {
+                        const opts = Array.from(document.querySelectorAll('.ant-select-item-option, [role="option"]'));
+                        const o = opts.find(x => x.innerText.toLowerCase().includes('internet') || x.innerText.includes('إنترنت'));
+                        if (o) { o.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); o.click(); }
+                    })()`
+                });
+                await new Promise(r => setTimeout(r, 800));
             }
 
-            // Dismiss any promo overlay modals on dashboard
+            // 3. Focus & Type Password
             await send('Runtime.evaluate', {
                 expression: `(() => {
-                    if (window.location.href.includes('/login')) return;
-                    const closeBtn = document.querySelector('.ant-modal-close, button[aria-label="Close"], .ant-modal-close-x');
-                    if (closeBtn) closeBtn.click();
+                    const p = document.querySelector('input[type="password"]');
+                    if (p) { p.focus(); p.click(); }
+                })()`
+            });
+            for (const c of password) {
+                await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
+                await send('Input.dispatchKeyEvent', { type: 'keyUp' });
+                await new Promise(r => setTimeout(r, 20));
+            }
+            await send('Runtime.evaluate', {
+                expression: `(() => {
+                    const p = document.querySelector('input[type="password"]');
+                    if (p) {
+                        p.dispatchEvent(new Event('input', { bubbles: true }));
+                        p.dispatchEvent(new Event('change', { bubbles: true }));
+                        p.blur();
+                    }
+                })()`
+            });
+            await new Promise(r => setTimeout(r, 800));
+
+            // 4. Click Login Button
+            await send('Runtime.evaluate', {
+                expression: `(() => {
+                    const btn = Array.from(document.querySelectorAll('button')).find(b => 
+                        b.innerText.includes('Login') || b.innerText.includes('تسجيل الدخول') || b.innerText.includes('دخول') || b.type === 'submit'
+                    );
+                    if (btn && !btn.disabled) btn.click();
                 })()`
             });
 
-            await new Promise(r => setTimeout(r, 600));
+            // 5. Intelligent Captcha Solver & CBS API Listener (up to 30s)
+            const solverScript = path.join(__dirname, 'solve_captcha.py');
+            const pythonBin = getPythonPath();
+            let lastSolvedImg = '';
+
+            const startTime = Date.now();
+            while (Date.now() - startTime < 35000) {
+                if (quotaResult || authError) break;
+
+                // Check if Captcha Modal is present
+                const modalCheck = await send('Runtime.evaluate', {
+                    expression: `(() => {
+                        const m = document.querySelector('.ant-modal-content');
+                        if (!m) return null;
+                        const img = Array.from(m.querySelectorAll('img')).find(i => i.src && i.src.startsWith('data:image'));
+                        const inp = m.querySelector('input');
+                        const okBtn = Array.from(m.querySelectorAll('button')).find(b => b.innerText.includes('Ok') || b.innerText.includes('حسنا'));
+                        return {
+                            hasModal: true,
+                            imgSrc: img ? img.src : null,
+                            hasInput: !!inp,
+                            okDisabled: okBtn ? okBtn.disabled : true
+                        };
+                    })()`,
+                    returnByValue: true
+                });
+
+                const mc = val(modalCheck);
+                if (mc?.hasModal && mc?.imgSrc && mc.imgSrc !== lastSolvedImg && fs.existsSync(solverScript)) {
+                    lastSolvedImg = mc.imgSrc;
+                    const b64Data = mc.imgSrc.split(',')[1];
+                    const tmpImg = path.join(os.tmpdir(), `cap_${Date.now()}_${Math.floor(Math.random()*1000)}.png`);
+                    fs.writeFileSync(tmpImg, Buffer.from(b64Data, 'base64'));
+
+                    let solvedCode = '';
+                    try {
+                        solvedCode = execSync(`"${pythonBin}" "${solverScript}" "${tmpImg}"`, { timeout: 6000 }).toString().trim();
+                    } catch(e) {}
+                    try { fs.unlinkSync(tmpImg); } catch(e) {}
+
+                    if (solvedCode && solvedCode.length >= 4) {
+                        await send('Runtime.evaluate', {
+                            expression: `(() => {
+                                const m = document.querySelector('.ant-modal-content');
+                                const inp = m ? m.querySelector('input') : null;
+                                if (inp) { inp.focus(); inp.click(); }
+                            })()`
+                        });
+                        for (const c of solvedCode) {
+                            await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
+                            await send('Input.dispatchKeyEvent', { type: 'keyUp' });
+                            await new Promise(r => setTimeout(r, 20));
+                        }
+                        await send('Runtime.evaluate', {
+                            expression: `(() => {
+                                const m = document.querySelector('.ant-modal-content');
+                                const inp = m ? m.querySelector('input') : null;
+                                const okBtn = m ? Array.from(m.querySelectorAll('button')).find(b => b.innerText.includes('Ok') || b.innerText.includes('حسنا')) : null;
+                                if (inp) {
+                                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                if (okBtn && !okBtn.disabled) okBtn.click();
+                            })()`
+                        });
+                    } else {
+                        // Click refresh icon on captcha modal
+                        await send('Runtime.evaluate', {
+                            expression: `(() => {
+                                const m = document.querySelector('.ant-modal-content');
+                                const imgs = m ? Array.from(m.querySelectorAll('img')) : [];
+                                if (imgs[1]) imgs[1].click();
+                            })()`
+                        });
+                    }
+                }
+
+                // Check for rate limit / attempts alert
+                const alertCheck = await send('Runtime.evaluate', {
+                    expression: `(() => {
+                        const alert = document.querySelector('.ant-message-notice, .ant-alert, [role="alert"]');
+                        return alert ? alert.innerText.trim() : null;
+                    })()`,
+                    returnByValue: true
+                });
+                const al = val(alertCheck);
+                if (al && (al.includes('maximum number of attempts') || al.includes('after one hour'))) {
+                    authError = 'تم تجاوز الحد الأقصى للمحاولات لدى وي مؤقتاً (حظر مؤقت لمدة ساعة) - يرجى الانتظار حتى انتهاء فترة التهدئة';
+                    break;
+                }
+
+                // Dismiss any promo overlay modals on dashboard
+                await send('Runtime.evaluate', {
+                    expression: `(() => {
+                        if (window.location.href.includes('/login')) return;
+                        const closeBtn = document.querySelector('.ant-modal-close, button[aria-label="Close"], .ant-modal-close-x');
+                        if (closeBtn) closeBtn.click();
+                    })()`
+                });
+
+                await new Promise(r => setTimeout(r, 600));
+            }
         }
 
         // If no quota or authError, check for specific alerts on page
@@ -395,7 +476,7 @@ async function fetchQuota(landlineNumber, password) {
                             }
                             const modal = document.querySelector('.ant-modal-content');
                             if (modal && modal.innerText.includes('Verification')) {
-                                return 'مطلوب رمز التحقق (كابتشا) مؤقتاً - يرجى الانتظار 3 دقائق أو فحص الخط من المتصفح';
+                                return 'مطلوب رمز التحقق (كابتشا) مؤقتاً - يرجى الانتظار دقيقتين أو فحص الخط من المتصفح';
                             }
                             return null;
                         })()
@@ -403,7 +484,13 @@ async function fetchQuota(landlineNumber, password) {
                     returnByValue: true
                 });
                 const errVal = val(checkError);
-                if (errVal) authError = errVal;
+                if (errVal) {
+                    if (errVal.includes('maximum number of attempts') || errVal.includes('after one hour')) {
+                        authError = 'تم تجاوز الحد الأقصى للمحاولات لدى وي مؤقتاً (حظر مؤقت لمدة ساعة) - يرجى الانتظار حتى انتهاء فترة التهدئة';
+                    } else {
+                        authError = errVal;
+                    }
+                }
             } catch(e) {}
         }
 
@@ -448,10 +535,9 @@ async function fetchQuota(landlineNumber, password) {
                     `,
                     returnByValue: true
                 });
-
                 const v = val(domData);
                 if (v) {
-                    if (v.name && (!customerNameResult || customerNameResult === 'مشترك وي')) {
+                    if (v.name && (!customerNameResult || customerNameResult === 'مشترك وي' || customerNameResult === 'مشترك الخط الأرضي')) {
                         customerNameResult = v.name;
                     }
                     if (v.balance !== undefined && v.balance !== null && !isNaN(v.balance) && balanceResult === null) {
@@ -480,18 +566,19 @@ async function fetchQuota(landlineNumber, password) {
             try { chrome.kill('SIGKILL'); } catch(e) {}
         }
 
-        try {
-            if (process.platform === 'win32') {
-                execSync(`cmd.exe /c "rd /s /q "${profileDir}""`, { stdio: 'ignore' });
-            } else {
-                execSync(`rm -rf "${profileDir}" 2>/dev/null || true`, { stdio: 'ignore' });
-            }
-        } catch(e) {}
-        try {
-            if (fs.existsSync(profileDir)) {
-                fs.rmSync(profileDir, { recursive: true, force: true });
-            }
-        } catch(e) {}
+        // Clean singleton lock files so future runs can start immediately without lock contention
+        lockFiles.forEach(f => {
+            try { fs.unlinkSync(path.join(profileDir, f)); } catch(e) {}
+        });
+
+        // If credentials were completely wrong, invalidate the session directory so fresh login is tried next time
+        if (authError && authError.includes('خطأ في بيانات الحساب')) {
+            try {
+                if (fs.existsSync(profileDir)) {
+                    fs.rmSync(profileDir, { recursive: true, force: true });
+                }
+            } catch(e) {}
+        }
     }
 
     if (quotaResult) {
@@ -500,7 +587,8 @@ async function fetchQuota(landlineNumber, password) {
             data: quotaResult,
             balance: balanceResult,
             points: pointsResult,
-            customer_name: customerNameResult
+            customer_name: customerNameResult,
+            session_cached: hasExistingSession
         }));
     } else {
         console.log(JSON.stringify({ success: false, error: authError || 'لم يتم العثور على بيانات الاستهلاك للباقة' }));

@@ -508,6 +508,19 @@ def refresh_line(line_id: str, user: str = Depends(get_current_user)):
   return {"success": True, "data": data}
 
 
+@app.post("/api/lines/{line_id}/reset-session")
+def reset_line_session(line_id: str, user: str = Depends(get_current_user)):
+  line = storage.get_line(line_id)
+  if not line:
+    raise HTTPException(status_code=404, detail="الخط غير موجود")
+
+  storage.clear_line_session(line.get("landline"))
+  return {
+      "success": True,
+      "message": f"تمت إعادة تعيين وتجديد جلسة الخط {line.get('landline')} بنجاح",
+  }
+
+
 @app.post("/api/lines/refresh-all")
 def refresh_all_lines(
     background_tasks: BackgroundTasks, user: str = Depends(get_current_user)
