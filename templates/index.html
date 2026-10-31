@@ -136,6 +136,62 @@
     <!-- Main Container -->
     <main class="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
 
+        <!-- Server System Health Bar (CPU & RAM Real-time Monitoring) -->
+        <section class="bg-slate-900/90 border border-slate-800/80 rounded-2xl px-4 py-2.5 shadow-lg backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+            <!-- Server Title & Live Status -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot"></span>
+                    <span class="text-xs font-bold text-white">خادم المنظومة:</span>
+                    <span class="text-xs font-mono font-bold text-purple-300 bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-500/30">197.164.101.4</span>
+                </div>
+                <span class="text-slate-600 hidden md:inline">|</span>
+                <div class="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
+                    <i class="fa-solid fa-clock text-slate-500 text-[10px]"></i>
+                    <span>مدة التشغيل:</span>
+                    <strong class="text-slate-200" id="sysUptime">-</strong>
+                </div>
+            </div>
+
+            <!-- CPU & RAM Real-time Gauges -->
+            <div class="flex items-center gap-5 sm:gap-8 flex-wrap">
+                <!-- 1. CPU Status -->
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 flex items-center justify-center text-xs shrink-0 shadow-inner">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between gap-3 text-[11px] mb-1">
+                            <span class="text-slate-400 font-medium">البروسيسور <span class="text-[10px] text-slate-500 font-mono" id="sysCpuCores">(Cores)</span></span>
+                            <span class="font-mono font-bold text-white text-xs" id="sysCpuPct">0%</span>
+                        </div>
+                        <div class="w-28 sm:w-36 bg-slate-950 rounded-full h-1.5 p-0.5 border border-slate-800 overflow-hidden">
+                            <div id="sysCpuBar" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. RAM Status -->
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/25 flex items-center justify-center text-xs shrink-0 shadow-inner">
+                        <i class="fa-solid fa-memory"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between gap-3 text-[11px] mb-1">
+                            <span class="text-slate-400 font-medium">الذاكرة (RAM)</span>
+                            <span class="font-mono font-bold text-white text-xs">
+                                <span id="sysRamUsed">0</span> / <span id="sysRamTotal">0</span> GB 
+                                <span class="text-purple-300 text-[10px]" id="sysRamPct">(0%)</span>
+                            </span>
+                        </div>
+                        <div class="w-28 sm:w-36 bg-slate-950 rounded-full h-1.5 p-0.5 border border-slate-800 overflow-hidden">
+                            <div id="sysRamBar" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Executive Metrics Ribbon (No separate chunky square cards!) -->
         <section class="bg-gradient-to-r from-slate-900/90 via-slate-900/80 to-purple-950/30 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
             <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-0 lg:divide-x lg:divide-x-reverse lg:divide-slate-800/80">
@@ -757,8 +813,58 @@
         document.addEventListener('DOMContentLoaded', () => {
             fetchCurrentUser();
             loadDashboard();
+            fetchSystemStatus();
             setInterval(loadDashboard, 60000); // Poll every 60s
+            setInterval(fetchSystemStatus, 5000); // Poll CPU/RAM every 5s for real-time responsiveness
         });
+
+        async function fetchSystemStatus() {
+            try {
+                const res = await apiFetch('/api/system/status');
+                const data = await res.json();
+                if (data.success) {
+                    // CPU
+                    const cpuPct = Number(data.cpu.percent || 0);
+                    document.getElementById('sysCpuPct').textContent = `${cpuPct}%`;
+                    document.getElementById('sysCpuBar').style.width = `${Math.min(100, Math.max(0, cpuPct))}%`;
+                    if (data.cpu.cores) {
+                        document.getElementById('sysCpuCores').textContent = `(${data.cpu.cores} Cores)`;
+                    }
+
+                    const cpuBar = document.getElementById('sysCpuBar');
+                    if (cpuPct >= 85) {
+                        cpuBar.className = "h-full bg-rose-500 rounded-full transition-all duration-500";
+                    } else if (cpuPct >= 60) {
+                        cpuBar.className = "h-full bg-amber-500 rounded-full transition-all duration-500";
+                    } else {
+                        cpuBar.className = "h-full bg-indigo-500 rounded-full transition-all duration-500";
+                    }
+
+                    // RAM
+                    const ramPct = Number(data.ram.percent || 0);
+                    document.getElementById('sysRamUsed').textContent = data.ram.used_gb;
+                    document.getElementById('sysRamTotal').textContent = data.ram.total_gb;
+                    document.getElementById('sysRamPct').textContent = `(${ramPct}%)`;
+                    document.getElementById('sysRamBar').style.width = `${Math.min(100, Math.max(0, ramPct))}%`;
+
+                    const ramBar = document.getElementById('sysRamBar');
+                    if (ramPct >= 85) {
+                        ramBar.className = "h-full bg-rose-500 rounded-full transition-all duration-500";
+                    } else if (ramPct >= 65) {
+                        ramBar.className = "h-full bg-amber-500 rounded-full transition-all duration-500";
+                    } else {
+                        ramBar.className = "h-full bg-purple-500 rounded-full transition-all duration-500";
+                    }
+
+                    // Uptime
+                    if (data.uptime) {
+                        document.getElementById('sysUptime').textContent = data.uptime;
+                    }
+                }
+            } catch (err) {
+                // Silently handle transient errors
+            }
+        }
 
         // Wrapper to handle 401 Unauthorized globally and attach token if available
         async function apiFetch(url, options = {}) {

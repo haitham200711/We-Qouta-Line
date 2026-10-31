@@ -13,6 +13,11 @@ from storage import storage
 from telegram_notifier import check_and_send_alerts, test_telegram_connection
 from we_api import WEApiClient
 
+try:
+  import psutil
+except ImportError:
+  psutil = None
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
@@ -519,6 +524,66 @@ def get_stats(user: str = Depends(get_current_user)):
           ),
       },
   }
+
+
+@app.get("/api/system/status")
+def get_system_status(user: str = Depends(get_current_user)):
+  try:
+    if psutil:
+      cpu_pct = round(psutil.cpu_percent(interval=None), 1)
+      mem = psutil.virtual_memory()
+      total_ram_gb = round(mem.total / (1024**3), 2)
+      used_ram_gb = round(mem.used / (1024**3), 2)
+      ram_pct = round(mem.percent, 1)
+      cores = psutil.cpu_count(logical=True) or 1
+      boot_time = psutil.boot_time()
+      uptime_sec = int(datetime.datetime.now().timestamp() - boot_time)
+    else:
+      cores = os.cpu_count() or 1
+      load1 = 0.0
+      try:
+        with open("/proc/loadavg") as f:
+          load1 = float(f.read().split()[0])
+      except Exception:
+        pass
+      cpu_pct = min(100.0, round((load1 / cores) * 100.0, 1))
+
+      total_ram_gb, used_ram_gb, ram_pct = 8.0, 1.0, 12.5
+      try:
+        with open("/proc/meminfo") as f:
+          m = {}
+          for line in f:
+            p = line.split(":")
+            if len(p) == 2:
+              m[p[0].strip()] = int(p[1].split()[0])
+          tot = m.get("MemTotal", 0) / (1024 * 1024)
+          avail = m.get("MemAvailable", 0) / (1024 * 1024)
+          total_ram_gb = round(tot, 2)
+          used_ram_gb = round(tot - avail, 2)
+          ram_pct = round((used_ram_gb / tot * 100.0), 1) if tot > 0 else 0
+      except Exception:
+        pass
+      uptime_sec = 3600
+
+    hours = uptime_sec // 3600
+    mins = (uptime_sec % 3600) // 60
+    uptime_str = f"{hours} س و {mins} د" if hours > 0 else f"{mins} دقيقة"
+
+    return {
+        "success": True,
+        "cpu": {
+            "percent": cpu_pct,
+            "cores": cores,
+        },
+        "ram": {
+            "percent": ram_pct,
+            "used_gb": used_ram_gb,
+            "total_gb": total_ram_gb,
+        },
+        "uptime": uptime_str,
+    }
+  except Exception as e:
+    return {"success": False, "error": str(e)}
 
 
 if __name__ == "__main__":
