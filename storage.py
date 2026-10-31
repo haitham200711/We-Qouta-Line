@@ -1,12 +1,24 @@
+import datetime
+import hashlib
 import json
+import logging
 import os
+import secrets
 import uuid
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger("storage")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 LINES_FILE = os.path.join(DATA_DIR, "lines.json")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
+SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")
+
+
+def hash_password(password: str) -> str:
+  return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
 
 DEFAULT_SETTINGS = {
     "telegram_bot_token": "",
@@ -19,6 +31,8 @@ DEFAULT_SETTINGS = {
     "auto_refresh_minutes": 30,
     "dark_mode": True,
     "last_alerts_sent": {},
+    "admin_username": "admin",
+    "admin_password_hash": hash_password("admin"),
 }
 
 
@@ -30,6 +44,8 @@ class Storage:
       self._save_json(LINES_FILE, [])
     if not os.path.exists(SETTINGS_FILE):
       self._save_json(SETTINGS_FILE, DEFAULT_SETTINGS)
+    if not os.path.exists(SESSIONS_FILE):
+      self._save_json(SESSIONS_FILE, {})
 
   def _read_json(self, filepath: str) -> Any:
     try:
@@ -44,6 +60,64 @@ class Storage:
       json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp_path, filepath)
 
+  # --- Sessions & Authentication ---
+  def get_sessions(self) -> Dict[str, Any]:
+    sessions = self._read_json(SESSIONS_FILE)
+    return sessions if isinstance(sessions, dict) else {}
+
+  def create_session(self, username: str) -> str:
+    token = secrets.token_hex(24)
+    sessions = self.get_sessions()
+    sessions[token] = {
+        "username": username,
+        "created_at": datetime.datetime.now().isoformat(),
+    }
+    self._save_json(SESSIONS_FILE, sessions)
+    return token
+
+  def validate_session(self, token: str) -> Optional[str]:
+    if not token:
+      return None
+    sessions = self.get_sessions()
+    sess = sessions.get(token)
+    if sess and isinstance(sess, dict):
+      return sess.get("username")
+    return None
+
+  def delete_session(self, token: str):
+    sessions = self.get_sessions()
+    if token in sessions:
+      del sessions[token]
+      self._save_json(SESSIONS_FILE, sessions)
+
+  def verify_credentials(self, username: str, password: str) -> bool:
+    settings = self.get_settings()
+    stored_user = settings.get("admin_username", "admin").strip().lower()
+    stored_hash = settings.get("admin_password_hash")
+    if not stored_hash:
+      stored_hash = hash_password("admin")
+
+    input_user = username.strip().lower()
+    input_hash = hash_password(password)
+
+    # Direct match with current settings
+    if input_user == stored_user and input_hash == stored_hash:
+      return True
+
+    # Fallback initial credentials if password hasn't been changed yet
+    if stored_hash == hash_password("admin"):
+      if input_user in ("admin", "haitham") and password in ("admin", "0106923040"):
+        return True
+
+    return False
+
+  def update_credentials(self, new_username: str, new_password: str) -> bool:
+    settings = self.get_settings()
+    settings["admin_username"] = new_username.strip()
+    settings["admin_password_hash"] = hash_password(new_password)
+    self.update_settings(settings)
+    return True
+
   # --- Lines Management ---
   def get_lines(self) -> List[Dict[str, Any]]:
     lines = self._read_json(LINES_FILE)
@@ -56,7 +130,14 @@ class Storage:
     return None
 
   def add_line(
-      self, landline: str, password: str, label: str = "", customer_name: str = "", notes: str = "", balance: Optional[float] = None, points: Optional[int] = None
+      self,
+      landline: str,
+      password: str,
+      label: str = "",
+      customer_name: str = "",
+      notes: str = "",
+      balance: Optional[float] = None,
+      points: Optional[int] = None,
   ) -> Dict[str, Any]:
     lines = self.get_lines()
 
@@ -105,7 +186,6 @@ class Storage:
     lines = self.get_lines()
     for line in lines:
       if line.get("id") == line_id:
-        import datetime
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")
         if quota_data.get("success"):
           line["last_data"] = quota_data
@@ -137,6 +217,16 @@ class Storage:
       self._save_json(LINES_FILE, lines)
       return True
     return False
+
+  def delete_lines(self, line_ids: List[str]) -> int:
+    lines = self.get_lines()
+    orig_len = len(lines)
+    id_set = set(line_ids)
+    lines = [l for l in lines if l.get("id") not in id_set]
+    deleted_count = orig_len - len(lines)
+    if deleted_count > 0:
+      self._save_json(LINES_FILE, lines)
+    return deleted_count
 
   # --- Settings Management ---
   def get_settings(self) -> Dict[str, Any]:

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول | منظومة متابعة خطوط وي (WE)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cairo Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        we: {
+                            purple: '#4a154b',
+                            dark: '#0e0714',
+                            light: '#6c1d6d',
+                            accent: '#bd10e0'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #070a12;
+            color: #f1f5f9;
+        }
+        .glow-sphere {
+            position: absolute;
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(108, 29, 109, 0.3) 0%, rgba(74, 21, 75, 0.1) 50%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(40px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden select-none">
+
+    <!-- Ambient Glowing Orbs -->
+    <div class="glow-sphere -top-32 -right-32"></div>
+    <div class="glow-sphere -bottom-32 -left-32"></div>
+
+    <!-- Login Card -->
+    <div class="relative z-10 w-full max-w-md bg-slate-900/90 backdrop-blur-2xl border border-slate-800/90 rounded-3xl p-8 shadow-2xl shadow-black/60">
+        
+        <!-- Header & Logo -->
+        <div class="text-center mb-7">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-[#4a154b] via-[#6c1d6d] to-[#bd10e0] flex items-center justify-center text-white shadow-xl shadow-purple-900/50">
+                <i class="fa-solid fa-wifi text-2xl"></i>
+            </div>
+            <h1 class="text-xl font-black text-white tracking-wide">منظومة متابعة خطوط وي (WE)</h1>
+            <p class="text-xs text-slate-400 mt-1 font-medium">تسجيل الدخول إلى لوحة التحكم والمراقبة المركزية</p>
+        </div>
+
+        <!-- Error Notification Alert -->
+        <div id="errorAlert" class="hidden mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2.5">
+            <i class="fa-solid fa-circle-exclamation text-sm shrink-0"></i>
+            <span id="errorMessage" class="font-medium">اسم المستخدم أو كلمة المرور غير صحيحة</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+            <!-- Username Input -->
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">اسم المستخدم:</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute right-3.5 top-3 text-slate-500 text-xs"></i>
+                    <input type="text" id="usernameInput" required autofocus placeholder="اسم المستخدم (مثال: admin)" class="w-full bg-slate-950/90 border border-slate-800 rounded-xl pr-10 pl-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition font-medium">
+                </div>
+            </div>
+
+            <!-- Password Input -->
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1.5">كلمة المرور:</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute right-3.5 top-3 text-slate-500 text-xs"></i>
+                    <input type="password" id="passwordInput" required placeholder="كلمة المرور" class="w-full bg-slate-950/90 border border-slate-800 rounded-xl pr-10 pl-10 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition font-medium">
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute left-3.5 top-3 text-slate-500 hover:text-slate-300 transition">
+                        <i id="eyeIcon" class="fa-solid fa-eye text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember Me -->
+            <div class="flex items-center justify-between text-xs pt-1">
+                <label class="flex items-center gap-2 text-slate-400 cursor-pointer">
+                    <input type="checkbox" id="rememberMe" checked class="w-4 h-4 rounded border-slate-800 text-purple-600 focus:ring-purple-500 bg-slate-950">
+                    <span class="text-[11px] font-medium">تذكر تسجيل دخولي في هذا المتصفح</span>
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btnSubmit" class="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-[#6c1d6d] via-purple-700 to-[#bd10e0] hover:opacity-95 text-white shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 transition transform active:scale-[0.98]">
+                <span id="btnText">دخول إلى المنظومة</span>
+                <i id="btnSpinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+            </button>
+        </form>
+
+        <!-- Footer Notice -->
+        <div class="mt-6 pt-4 border-t border-slate-800/80 text-center text-[11px] text-slate-500 space-y-1">
+            <p>اسم المستخدم الافتراضي: <code class="text-purple-400 font-bold font-mono">admin</code> | كلمة المرور: <code class="text-purple-400 font-bold font-mono">admin</code></p>
+            <p class="text-[10px] text-slate-600">يمكنك تغيير كلمة المرور واسم المستخدم في أي وقت من لوحة التحكم.</p>
+        </div>
+
+    </div>
+
+    <script>
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('passwordInput');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                passInput.type = 'password';
+                eyeIcon.className = 'fa-solid fa-eye text-xs';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            errorAlert.classList.add('hidden');
+            btnSubmit.disabled = true;
+            btnText.textContent = "جاري التحقق...";
+            btnSpinner.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    btnText.textContent = "تم الدخول بنجاح! جاري التحويل...";
+                    window.location.href = '/';
+                } else {
+                    errorMessage.textContent = data.detail || data.message || "اسم المستخدم أو كلمة المرور غير صحيحة";
+                    errorAlert.classList.remove('hidden');
+                    btnSubmit.disabled = false;
+                    btnText.textContent = "دخول إلى المنظومة";
+                    btnSpinner.classList.add('hidden');
+                }
+            } catch (err) {
+                errorMessage.textContent = "حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً";
+                errorAlert.classList.remove('hidden');
+                btnSubmit.disabled = false;
+                btnText.textContent = "دخول إلى المنظومة";
+                btnSpinner.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

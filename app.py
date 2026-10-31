@@ -2,10 +2,10 @@ import asyncio
 import datetime
 import logging
 import os
-from typing import Optional
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from typing import List, Optional
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from scheduler import scheduler
 from storage import storage
@@ -31,7 +31,45 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 
+# --- Auth Dependency ---
+def get_current_user(request: Request) -> str:
+  token = request.cookies.get("we_session")
+  if not token:
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+      token = auth_header.split(" ")[1]
+
+  if not token:
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="غير مصرح، يرجى تسجيل الدخول",
+    )
+
+  username = storage.validate_session(token)
+  if not username:
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول",
+    )
+  return username
+
+
 # --- Models ---
+class LoginRequest(BaseModel):
+  username: str
+  password: str
+
+
+class ChangePasswordRequest(BaseModel):
+  current_password: str
+  new_password: str
+  new_username: Optional[str] = None
+
+
+class BulkDeleteRequest(BaseModel):
+  ids: List[str]
+
+
 class LineCreate(BaseModel):
   landline: str
   password: str
@@ -81,9 +119,13 @@ def shutdown_event():
   scheduler.stop()
 
 
-# --- Views ---
+# --- HTML Page Views ---
 @app.get("/", response_class=HTMLResponse)
-def index_page():
+def index_page(request: Request):
+  token = request.cookies.get("we_session")
+  if not token or not storage.validate_session(token):
+    return RedirectResponse(url="/login")
+
   index_file = os.path.join(TEMPLATES_DIR, "index.html")
   if os.path.exists(index_file):
     with open(index_file, "r", encoding="utf-8") as f:
@@ -91,9 +133,85 @@ def index_page():
   return "<h1>Error: templates/index.html not found</h1>"
 
 
-# --- API Endpoints ---
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+  token = request.cookies.get("we_session")
+  if token and storage.validate_session(token):
+    return RedirectResponse(url="/")
+
+  login_file = os.path.join(TEMPLATES_DIR, "login.html")
+  if os.path.exists(login_file):
+    with open(login_file, "r", encoding="utf-8") as f:
+      return f.read()
+  return "<h1>Error: templates/login.html not found</h1>"
+
+
+# --- Authentication Endpoints ---
+@app.post("/api/auth/login")
+def auth_login(payload: LoginRequest, response: Response):
+  if not storage.verify_credentials(payload.username, payload.password):
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="اسم المستخدم أو كلمة المرور غير صحيحة",
+    )
+
+  token = storage.create_session(payload.username.strip())
+  response.set_cookie(
+      key="we_session",
+      value=token,
+      max_age=86400 * 30,  # 30 days
+      httponly=True,
+      samesite="lax",
+      path="/",
+  )
+  return {
+      "success": True,
+      "message": "تم تسجيل الدخول بنجاح",
+      "token": token,
+      "username": payload.username,
+  }
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request, response: Response):
+  token = request.cookies.get("we_session")
+  if token:
+    storage.delete_session(token)
+  response.delete_cookie(key="we_session", path="/")
+  return {"success": True, "message": "تم تسجيل الخروج بنجاح"}
+
+
+@app.get("/api/auth/me")
+def auth_me(user: str = Depends(get_current_user)):
+  settings = storage.get_settings()
+  current_user = settings.get("admin_username", user)
+  return {"success": True, "username": current_user}
+
+
+@app.post("/api/auth/change-password")
+def change_password(
+    payload: ChangePasswordRequest, user: str = Depends(get_current_user)
+):
+  if not storage.verify_credentials(user, payload.current_password):
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="كلمة المرور الحالية غير صحيحة",
+    )
+
+  if len(payload.new_password) < 4:
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="كلمة المرور الجديدة يجب ألا تقل عن 4 أحرف",
+    )
+
+  new_user = payload.new_username.strip() if payload.new_username else user
+  storage.update_credentials(new_user, payload.new_password)
+  return {"success": True, "message": "تم تحديث بيانات الدخول بنجاح"}
+
+
+# --- Lines API Endpoints ---
 @app.get("/api/lines")
-def list_lines():
+def list_lines(user: str = Depends(get_current_user)):
   lines = storage.get_lines()
   safe_lines = []
   for l in lines:
@@ -104,7 +222,11 @@ def list_lines():
 
 
 @app.post("/api/lines")
-def add_line(item: LineCreate, background_tasks: BackgroundTasks):
+def add_line(
+    item: LineCreate,
+    background_tasks: BackgroundTasks,
+    user: str = Depends(get_current_user),
+):
   if not item.landline or not item.password:
     raise HTTPException(
         status_code=400, detail="رقم التليفون الأرضي وكلمة المرور مطلوبان"
@@ -114,7 +236,6 @@ def add_line(item: LineCreate, background_tasks: BackgroundTasks):
   if len(clean_num) < 6:
     raise HTTPException(status_code=400, detail="رقم التليفون الأرضي غير صالح")
 
-  # Check duplicate
   existing = [l for l in storage.get_lines() if l.get("landline") == clean_num]
   if existing:
     raise HTTPException(
@@ -152,7 +273,9 @@ def add_line(item: LineCreate, background_tasks: BackgroundTasks):
 
 
 @app.put("/api/lines/{line_id}")
-def update_line(line_id: str, updates: LineUpdate):
+def update_line(
+    line_id: str, updates: LineUpdate, user: str = Depends(get_current_user)
+):
   line = storage.get_line(line_id)
   if not line:
     raise HTTPException(status_code=404, detail="الخط غير موجود")
@@ -179,14 +302,28 @@ def update_line(line_id: str, updates: LineUpdate):
 
 
 @app.delete("/api/lines/{line_id}")
-def delete_line(line_id: str):
+def delete_line(line_id: str, user: str = Depends(get_current_user)):
   if storage.delete_line(line_id):
     return {"success": True, "message": "تم حذف الخط بنجاح"}
   raise HTTPException(status_code=404, detail="الخط غير موجود")
 
 
+@app.post("/api/lines/bulk-delete")
+def bulk_delete_lines(
+    payload: BulkDeleteRequest, user: str = Depends(get_current_user)
+):
+  if not payload.ids:
+    raise HTTPException(status_code=400, detail="يرجى تحديد خط واحد على الأقل")
+  deleted_count = storage.delete_lines(payload.ids)
+  return {
+      "success": True,
+      "message": f"تم حذف {deleted_count} خط بنجاح",
+      "deleted_count": deleted_count,
+  }
+
+
 @app.post("/api/lines/{line_id}/refresh")
-def refresh_line(line_id: str):
+def refresh_line(line_id: str, user: str = Depends(get_current_user)):
   line = storage.get_line(line_id)
   if not line:
     raise HTTPException(status_code=404, detail="الخط غير موجود")
@@ -204,7 +341,9 @@ def refresh_line(line_id: str):
 
 
 @app.post("/api/lines/refresh-all")
-def refresh_all_lines(background_tasks: BackgroundTasks):
+def refresh_all_lines(
+    background_tasks: BackgroundTasks, user: str = Depends(get_current_user)
+):
   background_tasks.add_task(scheduler.refresh_all_lines)
   return {
       "success": True,
@@ -213,33 +352,40 @@ def refresh_all_lines(background_tasks: BackgroundTasks):
 
 
 @app.get("/api/settings")
-def get_settings():
+def get_settings(user: str = Depends(get_current_user)):
   settings = storage.get_settings()
   safe = settings.copy()
   safe.pop("last_alerts_sent", None)
+  safe.pop("admin_password_hash", None)
   return {"success": True, "settings": safe}
 
 
 @app.post("/api/settings")
-def save_settings(data: SettingsUpdate):
-  current = storage.get_settings()
+def save_settings(
+    data: SettingsUpdate, user: str = Depends(get_current_user)
+):
   updates = {k: v for k, v in data.dict().items() if v is not None}
   updated = storage.update_settings(updates)
+  safe = updated.copy()
+  safe.pop("last_alerts_sent", None)
+  safe.pop("admin_password_hash", None)
   return {
       "success": True,
       "message": "تم حفظ الإعدادات بنجاح",
-      "settings": updated,
+      "settings": safe,
   }
 
 
 @app.post("/api/telegram/test")
-def test_telegram(payload: TelegramTest):
+def test_telegram(
+    payload: TelegramTest, user: str = Depends(get_current_user)
+):
   result = test_telegram_connection(payload.bot_token, payload.chat_id)
   return result
 
 
 @app.get("/api/stats")
-def get_stats():
+def get_stats(user: str = Depends(get_current_user)):
   lines = storage.get_lines()
   total_lines = len(lines)
   active_lines = sum(1 for l in lines if l.get("is_active", True))
@@ -253,11 +399,19 @@ def get_stats():
   for l in lines:
     raw_data = l.get("last_data")
     if raw_data and raw_data.get("success"):
-      inner = raw_data.get("data") if isinstance(raw_data.get("data"), dict) else raw_data
+      inner = (
+          raw_data.get("data")
+          if isinstance(raw_data.get("data"), dict)
+          else raw_data
+      )
       tot = float(inner.get("total_gb") or inner.get("total") or 0.0)
       rem = float(inner.get("remain_gb") or inner.get("remain") or 0.0)
       usd = float(inner.get("used_gb") or inner.get("used") or 0.0)
-      days = inner.get("days_left") if inner.get("days_left") is not None else inner.get("days_remaining", 999)
+      days = (
+          inner.get("days_left")
+          if inner.get("days_left") is not None
+          else inner.get("days_remaining", 999)
+      )
       if days is None:
         days = 999
 
@@ -265,12 +419,12 @@ def get_stats():
       total_remain_gb += rem
       total_used_gb += usd
 
-      status = inner.get("status_tag") or inner.get("status")
+      status_val = inner.get("status_tag") or inner.get("status")
       rem_pct = inner.get("remain_percent") or inner.get("remain_percentage")
       if rem_pct is None:
         rem_pct = (rem / tot * 100.0) if tot > 0 else 100.0
 
-      if status in ("critical", "warning") or rem_pct <= 20:
+      if status_val in ("critical", "warning") or rem_pct <= 20:
         critical_lines_count += 1
 
       if nearest_renewal_days is None or days < nearest_renewal_days:
