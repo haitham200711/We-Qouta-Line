@@ -53,7 +53,18 @@ async function test(landline, password) {
     await send('Network.enable');
     await send('Page.enable');
     await send('Page.navigate', { url: 'https://my.te.eg/echannel/#/login' });
-    await new Promise(r => setTimeout(r, 5000));
+    
+    // Wait for form to mount dynamically
+    let mounted = false;
+    for (let i = 0; i < 40; i++) {
+        const chk = await send('Runtime.evaluate', {
+            expression: `!!(document.querySelector('input[placeholder*="Service"]') || document.querySelector('input[placeholder*="الخدمة"]') || document.querySelector('input.ant-input:not([type="password"])'))`,
+            returnByValue: true
+        });
+        if (chk.result?.value) { mounted = true; break; }
+        await new Promise(r => setTimeout(r, 500));
+    }
+    console.log('>>> [FORM MOUNTED]:', mounted);
 
     // Type landline
     await send('Runtime.evaluate', {
@@ -62,6 +73,7 @@ async function test(landline, password) {
     for (const c of landline) {
         await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
         await send('Input.dispatchKeyEvent', { type: 'keyUp' });
+        await new Promise(r => setTimeout(r, 20));
     }
     await send('Runtime.evaluate', {
         expression: `(() => { const el = document.querySelector('input[placeholder*="Service"], input[placeholder*="الخدمة"], input.ant-input:not([type="password"])'); if (el) { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.blur(); } })()`
@@ -69,14 +81,20 @@ async function test(landline, password) {
     await new Promise(r => setTimeout(r, 800));
 
     // Select Internet
-    await send('Runtime.evaluate', {
-        expression: `(() => { const sel = document.querySelector('.ant-select-selector, .ant-select'); if (sel) { sel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); sel.click(); } })()`
+    const hasSelect = await send('Runtime.evaluate', {
+        expression: `!!(document.querySelector('.ant-select-selector, .ant-select'))`,
+        returnByValue: true
     });
-    await new Promise(r => setTimeout(r, 600));
-    await send('Runtime.evaluate', {
-        expression: `(() => { const opts = Array.from(document.querySelectorAll('.ant-select-item-option, [role="option"]')); const o = opts.find(x => x.innerText.toLowerCase().includes('internet') || x.innerText.includes('إنترنت')); if (o) { o.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); o.click(); } })()`
-    });
-    await new Promise(r => setTimeout(r, 800));
+    if (hasSelect.result?.value) {
+        await send('Runtime.evaluate', {
+            expression: `(() => { const sel = document.querySelector('.ant-select-selector, .ant-select'); if (sel) { sel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); sel.click(); } })()`
+        });
+        await new Promise(r => setTimeout(r, 600));
+        await send('Runtime.evaluate', {
+            expression: `(() => { const opts = Array.from(document.querySelectorAll('.ant-select-item-option, [role="option"]')); const o = opts.find(x => x.innerText.toLowerCase().includes('internet') || x.innerText.includes('إنترنت')); if (o) { o.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); o.click(); } })()`
+        });
+        await new Promise(r => setTimeout(r, 800));
+    }
 
     // Type password
     await send('Runtime.evaluate', {
@@ -85,6 +103,7 @@ async function test(landline, password) {
     for (const c of password) {
         await send('Input.dispatchKeyEvent', { type: 'keyDown', text: c });
         await send('Input.dispatchKeyEvent', { type: 'keyUp' });
+        await new Promise(r => setTimeout(r, 20));
     }
     await send('Runtime.evaluate', {
         expression: `(() => { const p = document.querySelector('input[type="password"]'); if (p) { p.dispatchEvent(new Event('input', { bubbles: true })); p.dispatchEvent(new Event('change', { bubbles: true })); p.blur(); } })()`
@@ -103,15 +122,26 @@ async function test(landline, password) {
         expression: `(() => { const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Login') || b.innerText.includes('تسجيل الدخول') || b.type === 'submit'); if (btn && !btn.disabled) btn.click(); })()`
     });
 
-    // Wait and check what happens for 15s
-    for (let i = 0; i < 15; i++) {
+    // Wait and check what happens for 20s
+    for (let i = 0; i < 20; i++) {
         await new Promise(r => setTimeout(r, 1000));
         const status = await send('Runtime.evaluate', {
-            expression: `(() => { return { url: window.location.href, modal: !!document.querySelector('.ant-modal-content'), alert: document.querySelector('.ant-message-notice, .ant-alert, [role="alert"]')?.innerText?.trim() }; })()`,
+            expression: `(() => { 
+                return { 
+                    url: window.location.href, 
+                    modal: !!document.querySelector('.ant-modal-content'), 
+                    alert: document.querySelector('.ant-message-notice, .ant-alert, [role="alert"]')?.innerText?.trim(),
+                    localStorageKeys: Object.keys(window.localStorage)
+                }; 
+            })()`,
             returnByValue: true
         });
         console.log(`>>> [T+${i+1}s]:`, JSON.stringify(status.result?.value));
     }
+
+    // Dump cookies
+    const cookies = await send('Network.getCookies');
+    console.log('>>> [COOKIES]:', JSON.stringify(cookies.result?.cookies?.map(c => ({ name: c.name, value: c.value.slice(0, 20), domain: c.domain }))));
 
     try { chrome.kill(); } catch(e) {}
     process.exit(0);
