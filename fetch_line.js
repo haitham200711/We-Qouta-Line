@@ -4,14 +4,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-let WS = globalThis.WebSocket;
-if (!WS) {
-    try {
-        WS = require('ws');
-    } catch(e) {
-        WS = globalThis.WebSocket;
-    }
-}
+const WS = globalThis.WebSocket || require('ws');
 
 function getChromePath() {
     if (process.platform === 'win32') {
@@ -40,19 +33,10 @@ async function fetchQuota(landlineNumber, password) {
         `--user-data-dir=${profileDir}`,
         '--no-first-run',
         '--no-default-browser-check',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-sync',
-        '--disable-default-apps',
-        '--mute-audio',
         '--no-sandbox',
         '--disable-dev-shm-usage',
-        '--renderer-process-limit=1',
-        '--disk-cache-size=1',
-        '--media-cache-size=1',
-        '--js-flags=--max-old-space-size=128'
+        '--disable-gpu',
+        '--disable-extensions'
     ]);
 
     let quotaResult = null;
@@ -73,7 +57,7 @@ async function fetchQuota(landlineNumber, password) {
             req.on('error', reject);
         });
 
-        const target = targets.find(t => t.type === 'page') || targets[0];
+        const target = targets.find(t => t.type === 'page' && !t.url.startsWith('chrome-extension://')) || targets[0];
         const ws = new WS(target.webSocketDebuggerUrl);
         let id = 1;
         const callbacks = new Map();
@@ -87,7 +71,9 @@ async function fetchQuota(landlineNumber, password) {
 
             if (msg.method === 'Network.responseReceived') {
                 const res = msg.params.response;
-                if (res.url.includes('/cz/cbs/bb/queryFreeUnit')) {
+                const u = res.url;
+
+                if (u.includes('/cz/cbs/bb/queryFreeUnit')) {
                     setTimeout(async () => {
                         try {
                             const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
@@ -96,8 +82,8 @@ async function fetchQuota(landlineNumber, password) {
                                 quotaResult = data.body;
                             }
                         } catch(e) {}
-                    }, 300);
-                } else if (res.url.includes('/cbs/ar/queryBalance')) {
+                    }, 250);
+                } else if (u.includes('/cbs/ar/queryBalance')) {
                     setTimeout(async () => {
                         try {
                             const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
@@ -107,8 +93,8 @@ async function fetchQuota(landlineNumber, password) {
                                 balanceResult = rawAmount > 10000 ? Math.round((rawAmount / 10000.0) * 100) / 100 : rawAmount;
                             }
                         } catch(e) {}
-                    }, 300);
-                } else if (res.url.includes('LoyaltyPoints') || res.url.includes('getLoyalty') || res.url.includes('queryLoyalty')) {
+                    }, 250);
+                } else if (u.includes('LoyaltyPoints') || u.includes('getLoyalty') || u.includes('queryLoyalty')) {
                     setTimeout(async () => {
                         try {
                             const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
@@ -119,8 +105,8 @@ async function fetchQuota(landlineNumber, password) {
                                 pointsResult = Math.round(parseFloat(pts));
                             }
                         } catch(e) {}
-                    }, 300);
-                } else if (res.url.includes('/cbs/bb/querySubscribers') || res.url.includes('/auth/queryCustomer')) {
+                    }, 250);
+                } else if (u.includes('/cbs/bb/querySubscribers') || u.includes('/auth/queryCustomer')) {
                     setTimeout(async () => {
                         try {
                             const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
@@ -128,8 +114,8 @@ async function fetchQuota(landlineNumber, password) {
                             const name = data.body?.customerName || data.body?.name || (data.body?.subscriberInfoList && data.body.subscriberInfoList[0]?.subscriberName);
                             if (name) customerNameResult = name;
                         } catch(e) {}
-                    }, 300);
-                } else if (res.url.includes('/auth/userAuthenticate')) {
+                    }, 250);
+                } else if (u.includes('/auth/userAuthenticate')) {
                     setTimeout(async () => {
                         try {
                             const bodyRes = await send('Network.getResponseBody', { requestId: msg.params.requestId });
@@ -149,7 +135,7 @@ async function fetchQuota(landlineNumber, password) {
                                 }
                             }
                         } catch(e) {}
-                    }, 300);
+                    }, 250);
                 }
             }
         };
@@ -167,7 +153,17 @@ async function fetchQuota(landlineNumber, password) {
         await send('Page.enable');
 
         await send('Page.navigate', { url: 'https://my.te.eg/echannel/' });
-        await new Promise(r => setTimeout(r, 5000));
+
+        // Wait dynamically until service number input is mounted (up to 25s)
+        for (let i = 0; i < 60; i++) {
+            const chk = await send('Runtime.evaluate', {
+                expression: `!!document.querySelector('input[placeholder="Service number"]')`,
+                returnByValue: true
+            });
+            if (chk.result?.result?.value || chk.result?.value) break;
+            await new Promise(r => setTimeout(r, 300));
+        }
+        await new Promise(r => setTimeout(r, 500));
 
         // Focus & Type Number
         await send('Runtime.evaluate', {
@@ -180,7 +176,7 @@ async function fetchQuota(landlineNumber, password) {
         }
         await new Promise(r => setTimeout(r, 1000));
 
-        // Open Service Type dropdown
+        // Trigger input validation & dropdown click
         const box = await send('Runtime.evaluate', {
             expression: `
                 (() => {
@@ -199,7 +195,7 @@ async function fetchQuota(landlineNumber, password) {
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
         await new Promise(r => setTimeout(r, 800));
 
-        // Click Option "Internet"
+        // Click Option "Internet" if present
         await send('Runtime.evaluate', {
             expression: `
                 (() => {
@@ -235,7 +231,7 @@ async function fetchQuota(landlineNumber, password) {
         const startTime = Date.now();
         while (Date.now() - startTime < 25000) {
             if (quotaResult || authError) break;
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 400));
         }
 
         if (!quotaResult && !authError) {
@@ -262,8 +258,8 @@ async function fetchQuota(landlineNumber, password) {
         }
 
         if (quotaResult) {
-            // Wait 2.5s for dashboard elements to populate
-            await new Promise(r => setTimeout(r, 2500));
+            // Wait 3.5s for dashboard elements, balance and loyalty points APIs to settle
+            await new Promise(r => setTimeout(r, 3500));
             try {
                 const domData = await send('Runtime.evaluate', {
                     expression: `
@@ -279,7 +275,6 @@ async function fetchQuota(landlineNumber, password) {
                                     res.name = clean;
                                 }
                             }
-                            // Also try finding profile header name
                             const userGreeting = document.querySelector('.user-name, .customer-name, [class*="greeting"], [class*="userName"]');
                             if (userGreeting && userGreeting.innerText.trim()) {
                                 res.name = res.name || userGreeting.innerText.trim();
@@ -319,7 +314,6 @@ async function fetchQuota(landlineNumber, password) {
             } catch(e) {}
         }
 
-        // Try closing browser cleanly via CDP first
         try {
             await send('Browser.close');
         } catch(e) {}
@@ -329,7 +323,6 @@ async function fetchQuota(landlineNumber, password) {
     } catch(err) {
         authError = err.message;
     } finally {
-        // 1. Force kill Chrome and ALL its child/worker/render processes
         if (chrome && chrome.pid) {
             try {
                 if (process.platform === 'win32') {
@@ -343,7 +336,6 @@ async function fetchQuota(landlineNumber, password) {
             } catch(e) {}
         }
 
-        // 2. Remove temporary profile directory completely
         try {
             if (process.platform === 'win32') {
                 execSync(`cmd.exe /c "rd /s /q "${profileDir}""`, { stdio: 'ignore' });
