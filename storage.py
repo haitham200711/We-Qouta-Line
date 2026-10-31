@@ -228,6 +228,61 @@ class Storage:
       self._save_json(LINES_FILE, lines)
     return deleted_count
 
+  def bulk_add_lines(
+      self,
+      landlines: List[str],
+      password: str,
+      label_prefix: str = "",
+      notes: str = "",
+  ) -> Dict[str, Any]:
+    lines = self.get_lines()
+    existing_numbers = {l.get("landline") for l in lines}
+    added_lines = []
+    skipped_count = 0
+    seen_in_batch = set()
+
+    for raw_num in landlines:
+      clean_num = "".join(filter(str.isdigit, raw_num.strip()))
+      if not clean_num:
+        continue
+      if not clean_num.startswith("0") and len(clean_num) >= 7:
+        clean_num = "0" + clean_num
+
+      if len(clean_num) < 6 or clean_num in existing_numbers or clean_num in seen_in_batch:
+        skipped_count += 1
+        continue
+
+      seen_in_batch.add(clean_num)
+      existing_numbers.add(clean_num)
+
+      label = f"{label_prefix} {clean_num}".strip() if label_prefix else f"خط {clean_num}"
+
+      new_line = {
+          "id": str(uuid.uuid4())[:8],
+          "landline": clean_num,
+          "password": password,
+          "label": label,
+          "customer_name": "",
+          "balance": None,
+          "points": None,
+          "notes": notes.strip(),
+          "is_active": True,
+          "last_data": None,
+          "last_error": None,
+          "last_checked": None,
+      }
+      lines.append(new_line)
+      added_lines.append(new_line)
+
+    if added_lines:
+      self._save_json(LINES_FILE, lines)
+
+    return {
+        "added_lines": added_lines,
+        "added_count": len(added_lines),
+        "skipped_count": skipped_count,
+    }
+
   # --- Settings Management ---
   def get_settings(self) -> Dict[str, Any]:
     data = self._read_json(SETTINGS_FILE)

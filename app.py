@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import os
+import re
 from typing import List, Optional
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -68,6 +69,14 @@ class ChangePasswordRequest(BaseModel):
 
 class BulkDeleteRequest(BaseModel):
   ids: List[str]
+
+
+class BulkImportRequest(BaseModel):
+  lines_text: str
+  password: str
+  default_label: Optional[str] = ""
+  notes: Optional[str] = ""
+  fetch_now: Optional[bool] = True
 
 
 class LineCreate(BaseModel):
@@ -319,6 +328,71 @@ def bulk_delete_lines(
       "success": True,
       "message": f"تم حذف {deleted_count} خط بنجاح",
       "deleted_count": deleted_count,
+  }
+
+
+@app.post("/api/lines/bulk-import")
+def bulk_import_lines(
+    payload: BulkImportRequest,
+    background_tasks: BackgroundTasks,
+    user: str = Depends(get_current_user),
+):
+  if not payload.password:
+    raise HTTPException(status_code=400, detail="كلمة المرور الموحدة مطلوبة")
+
+  if not payload.lines_text or not payload.lines_text.strip():
+    raise HTTPException(
+        status_code=400,
+        detail="يرجى إدخال أرقام الخطوط أو رفع ملف التكست",
+    )
+
+  # Split by newline, comma, semicolon, space, or tab
+  raw_items = re.split(r"[\r\n,;]+", payload.lines_text)
+  landlines = [item.strip() for item in raw_items if item.strip()]
+
+  if not landlines:
+    raise HTTPException(
+        status_code=400,
+        detail="لم يتم العثور على أي أرقام صالحة في النص المدخل",
+    )
+
+  result = storage.bulk_add_lines(
+      landlines=landlines,
+      password=payload.password,
+      label_prefix=payload.default_label or "",
+      notes=payload.notes or "",
+  )
+
+  added_lines = result["added_lines"]
+
+  if payload.fetch_now and added_lines:
+
+    def fetch_batch_task():
+      settings = storage.get_settings()
+      for line in added_lines:
+        try:
+          client = WEApiClient(line["landline"], line["password"])
+          data = client.fetch_quota()
+          storage.update_line_quota(line["id"], data)
+          updated = storage.get_line(line["id"])
+          if updated and data.get("success"):
+            check_and_send_alerts(updated, settings)
+        except Exception as e:
+          logger.error(
+              f"Error fetching imported line {line.get('landline')}: {e}"
+          )
+
+    background_tasks.add_task(fetch_batch_task)
+
+  msg = f"تمت إضافة {result['added_count']} خط بنجاح"
+  if result["skipped_count"] > 0:
+    msg += f" (تم تخطي {result['skipped_count']} رقم مكرر أو غير صالح)"
+
+  return {
+      "success": True,
+      "message": msg,
+      "added_count": result["added_count"],
+      "skipped_count": result["skipped_count"],
   }
 
 

@@ -116,6 +116,11 @@
                     <span>إضافة خط</span>
                 </button>
 
+                <button onclick="openBulkImportModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 transition transform active:scale-95" title="استيراد أرقام خطوط متعددة بملف تكست أو لصق مباشر مع باسورد موحد">
+                    <i class="fa-solid fa-file-import text-indigo-400"></i>
+                    <span>استيراد جماعي</span>
+                </button>
+
                 <button onclick="openSettingsModal()" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition" title="الإعدادات والتيليجرام">
                     <i class="fa-solid fa-gear text-sm"></i>
                 </button>
@@ -474,6 +479,93 @@
                     <button type="submit" id="btnSubmitAdd" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-600/30 flex items-center gap-1.5">
                         <span id="btnSubmitAddText">حفظ وفحص الجيجات</span>
                         <i class="fa-solid fa-circle-notch fa-spin hidden" id="spinnerAdd"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Bulk Import Lines (Unified Password + File/Text) -->
+    <div id="modalBulkImport" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
+            <button onclick="closeBulkImportModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-file-import"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">استيراد أرقام خطوط متعددة</h3>
+                    <p class="text-xs text-slate-400">إضافة مجموعة خطوط بكلمة مرور موحدة عبر ملف نصي أو لصق مباشر</p>
+                </div>
+            </div>
+
+            <form id="formBulkImport" onsubmit="submitBulkImport(event)" class="space-y-4">
+                <!-- 1. Unified Password -->
+                <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-200">
+                        <i class="fa-solid fa-key text-amber-400 ml-1"></i> كلمة المرور الموحدة لحسابات My WE: <span class="text-rose-400">*</span>
+                    </label>
+                    <p class="text-[11px] text-slate-400">سيتم تطبيق هذه الكلمة على جميع أرقام الخطوط التي يتم استيرادها في هذه الدفعة.</p>
+                    <div class="relative mt-1">
+                        <i class="fa-solid fa-lock absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="password" id="bulkPassword" required placeholder="كلمة المرور المشتركة لحسابات الخطوط" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pr-9 pl-9 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        <button type="button" onclick="togglePass('bulkPassword', this)" class="absolute left-3.5 top-2 text-slate-500 hover:text-slate-300">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. File Upload Dropzone -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">
+                        <i class="fa-solid fa-upload text-sky-400 ml-1"></i> رفع ملف تكست (.txt أو .csv):
+                    </label>
+                    <label for="bulkFileInput" class="border-2 border-dashed border-slate-700/80 hover:border-purple-500/60 bg-slate-950/60 rounded-xl p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition text-center group">
+                        <i class="fa-solid fa-file-arrow-up text-xl text-slate-500 group-hover:text-purple-400 transition"></i>
+                        <span class="text-xs font-medium text-slate-300 group-hover:text-white transition">انقر لاختيار ملف أرقام الخطوط</span>
+                        <span class="text-[10px] text-slate-500">يدعم ملفات .txt و .csv (سطر لكل رقم خط)</span>
+                        <span id="bulkFileNameBadge" class="hidden text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mt-1"></span>
+                    </label>
+                    <input type="file" id="bulkFileInput" accept=".txt,.csv" onchange="handleBulkFileUpload(event)" class="hidden">
+                </div>
+
+                <!-- 3. Textarea Input -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-300">أو ألصق أرقام الخطوط هنا مباشرة:</label>
+                        <span id="bulkNumberCountBadge" class="text-[11px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">0 رقم تم رصده</span>
+                    </div>
+                    <textarea id="bulkLinesText" rows="6" oninput="onBulkTextareaInput()" required placeholder="مثال:
+0863880764
+0863881825
+0863884968
+0225514068
+033425346" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500 leading-relaxed"></textarea>
+                    <p class="text-[10px] text-slate-500 mt-1">يقبل الأرقام المكتوبة تحت بعضها أو مفصولة بفواصل أو مسافات. سيتم تجاهل التكرار تلقائياً.</p>
+                </div>
+
+                <!-- 4. Default Label Prefix -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">بادئة المسمى / الفرع (اختياري):</label>
+                    <input type="text" id="bulkDefaultLabel" placeholder="مثال: راوتر، فرع المنيا (سيتم ترقيمها تلقائياً)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <!-- 5. Options -->
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                    <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="bulkFetchNow" checked class="w-4 h-4 rounded border-slate-800 text-purple-600 focus:ring-purple-500 bg-slate-950">
+                        <span>فحص واستعلام باقات الخطوط فوراً في الخلفية</span>
+                    </label>
+                </div>
+
+                <!-- Submit & Cancel -->
+                <div class="pt-2 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeBulkImportModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">إلغاء</button>
+                    <button type="submit" id="btnSubmitBulkImport" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-600 hover:from-purple-600 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/30 flex items-center gap-2">
+                        <span id="btnSubmitBulkText">بدء الاستيراد والإضافة</span>
+                        <i class="fa-solid fa-circle-notch fa-spin hidden" id="spinnerBulkImport"></i>
                     </button>
                 </div>
             </form>
@@ -1579,6 +1671,104 @@
             } finally {
                 btn.disabled = false;
                 txt.textContent = "حفظ وفحص الجيجات";
+                spin.classList.add('hidden');
+            }
+        }
+
+        // Bulk Import Modal Logic
+        function openBulkImportModal() {
+            document.getElementById('formBulkImport').reset();
+            document.getElementById('bulkNumberCountBadge').textContent = "0 رقم تم رصده";
+            const badge = document.getElementById('bulkFileNameBadge');
+            badge.textContent = "";
+            badge.classList.add('hidden');
+            document.getElementById('modalBulkImport').classList.remove('hidden');
+        }
+
+        function closeBulkImportModal() {
+            document.getElementById('modalBulkImport').classList.add('hidden');
+        }
+
+        function handleBulkFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const badge = document.getElementById('bulkFileNameBadge');
+            badge.textContent = `تم تحميل: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            badge.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const textarea = document.getElementById('bulkLinesText');
+                textarea.value = text;
+                onBulkTextareaInput();
+                showToast(`تم استخراج أرقام الخطوط من ${file.name}`, "info");
+            };
+            reader.readAsText(file, "UTF-8");
+        }
+
+        function onBulkTextareaInput() {
+            const text = document.getElementById('bulkLinesText').value || '';
+            const rawItems = text.split(/[\r\n,;]+/);
+            const validNums = new Set();
+            rawItems.forEach(item => {
+                const clean = item.replace(/\D/g, '');
+                if (clean.length >= 6) {
+                    validNums.add(clean.startsWith('0') ? clean : '0' + clean);
+                }
+            });
+            document.getElementById('bulkNumberCountBadge').textContent = `${validNums.size} رقم صالح`;
+        }
+
+        async function submitBulkImport(e) {
+            e.preventDefault();
+            const password = document.getElementById('bulkPassword').value;
+            const lines_text = document.getElementById('bulkLinesText').value.trim();
+            const default_label = document.getElementById('bulkDefaultLabel').value.trim();
+            const fetch_now = document.getElementById('bulkFetchNow').checked;
+
+            if (!password) {
+                showToast("يرجى كتابة كلمة المرور الموحدة", "error");
+                return;
+            }
+            if (!lines_text) {
+                showToast("يرجى إدخال أرقام الخطوط أو اختيار ملف تكست", "error");
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitBulkImport');
+            const txt = document.getElementById('btnSubmitBulkText');
+            const spin = document.getElementById('spinnerBulkImport');
+
+            btn.disabled = true;
+            txt.textContent = "جاري استيراد الخطوط...";
+            spin.classList.remove('hidden');
+
+            try {
+                const res = await apiFetch('/api/lines/bulk-import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password,
+                        lines_text,
+                        default_label,
+                        fetch_now
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(data.message, "success");
+                    closeBulkImportModal();
+                    await loadDashboard();
+                } else {
+                    showToast(data.detail || data.message || "فشل الاستيراد الجماعي", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ أثناء الاتصال بالخادم", "error");
+            } finally {
+                btn.disabled = false;
+                txt.textContent = "بدء الاستيراد والإضافة";
                 spin.classList.add('hidden');
             }
         }
