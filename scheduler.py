@@ -72,6 +72,13 @@ class QuotaScheduler:
 
     while not self._stop_event.is_set():
       settings = storage.get_settings()
+      auto_enabled = settings.get("auto_refresh_enabled", True)
+      if not auto_enabled:
+        logger.info("Background quota refresh is paused by user. Sleeping 15s...")
+        if self._stop_event.wait(15):
+          break
+        continue
+
       interval_mins = settings.get("auto_refresh_minutes")
       if interval_mins is None:
         interval_mins = int(settings.get("auto_refresh_hours", 1)) * 60

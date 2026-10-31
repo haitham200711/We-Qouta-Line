@@ -74,6 +74,7 @@ DEFAULT_SETTINGS = {
     "alert_days_left": 3,
     "auto_refresh_hours": 1,
     "auto_refresh_minutes": 30,
+    "auto_refresh_enabled": True,
     "dark_mode": True,
     "last_alerts_sent": {},
     "admin_username": "admin",

@@ -142,6 +142,7 @@ class SettingsUpdate(BaseModel):
   alert_days_left: Optional[int] = None
   auto_refresh_hours: Optional[int] = None
   auto_refresh_minutes: Optional[int] = None
+  auto_refresh_enabled: Optional[bool] = None
   # WhatsApp Settings
   whatsapp_enabled: Optional[bool] = None
   whatsapp_provider: Optional[str] = None  # 'baileys' or 'callmebot'
@@ -556,6 +557,23 @@ def save_settings(
       "success": True,
       "message": "تم حفظ الإعدادات بنجاح",
       "settings": safe,
+  }
+
+
+@app.post("/api/settings/toggle-auto-refresh")
+def toggle_auto_refresh(user: str = Depends(get_current_user)):
+  settings = storage.get_settings()
+  current = settings.get("auto_refresh_enabled", True)
+  new_state = not current
+  storage.update_settings({"auto_refresh_enabled": new_state})
+  return {
+      "success": True,
+      "auto_refresh_enabled": new_state,
+      "message": (
+          "تم استئناف التحديث التلقائي بنجاح"
+          if new_state
+          else "تم إيقاف التحديث التلقائي مؤقتاً"
+      ),
   }
 
 
