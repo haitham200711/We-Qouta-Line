@@ -509,6 +509,18 @@ def get_stats(user: str = Depends(get_current_user)):
       if nearest_renewal_days is None or days < nearest_renewal_days:
         nearest_renewal_days = days
 
+  if nearest_renewal_days is not None:
+    if nearest_renewal_days <= 0:
+      nearest_renewal_text = "اليوم ⚠️"
+    elif nearest_renewal_days == 1:
+      nearest_renewal_text = "غداً ⏳"
+    elif nearest_renewal_days == 2:
+      nearest_renewal_text = "خلال يومين ⏳"
+    else:
+      nearest_renewal_text = f"خلال {nearest_renewal_days} يوم"
+  else:
+    nearest_renewal_text = "-"
+
   return {
       "success": True,
       "stats": {
@@ -519,6 +531,7 @@ def get_stats(user: str = Depends(get_current_user)):
           "total_used_gb": round(total_used_gb, 1),
           "critical_lines_count": critical_lines_count,
           "nearest_renewal_days": nearest_renewal_days,
+          "nearest_renewal_text": nearest_renewal_text,
           "last_checked_time": datetime.datetime.now().strftime(
               "%Y/%m/%d %I:%M %p"
           ),

@@ -816,6 +816,7 @@
             fetchSystemStatus();
             setInterval(loadDashboard, 60000); // Poll every 60s
             setInterval(fetchSystemStatus, 5000); // Poll CPU/RAM every 5s for real-time responsiveness
+            setInterval(updateAllCountdowns, 1000); // Live countdown tick every second!
         });
 
         async function fetchSystemStatus() {
@@ -982,7 +983,13 @@
                     document.getElementById('statTotalQuota').textContent = `من إجمالي ${s.total_quota_gb} GB`;
                     document.getElementById('statTotalUsed').innerHTML = `${s.total_used_gb} <span class="text-xs font-semibold text-slate-400">GB</span>`;
                     document.getElementById('statCriticalLines').textContent = s.critical_lines_count;
-                    document.getElementById('statNearestRenewal').textContent = s.nearest_renewal_days !== null ? `أقرب تجديد: خلال ${s.nearest_renewal_days} يوم` : 'أقرب تجديد: -';
+                    if (s.nearest_renewal_text) {
+                        document.getElementById('statNearestRenewal').textContent = `أقرب تجديد: ${s.nearest_renewal_text}`;
+                    } else if (s.nearest_renewal_days !== null && s.nearest_renewal_days !== undefined) {
+                        document.getElementById('statNearestRenewal').textContent = s.nearest_renewal_days <= 0 ? 'أقرب تجديد: اليوم ⚠️' : `أقرب تجديد: خلال ${s.nearest_renewal_days} يوم`;
+                    } else {
+                        document.getElementById('statNearestRenewal').textContent = 'أقرب تجديد: -';
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching stats:", err);
@@ -1219,6 +1226,193 @@
             }
         }
 
+        function parseDateString(dateStr) {
+            if (!dateStr || dateStr === 'غير محدد') return null;
+            try {
+                const cleanStr = String(dateStr).replace(/\//g, '-').trim();
+                // Match YYYY-MM-DD
+                let match = cleanStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?$/i);
+                if (match) {
+                    const year = parseInt(match[1], 10);
+                    const month = parseInt(match[2], 10) - 1;
+                    const day = parseInt(match[3], 10);
+                    let hour = match[4] ? parseInt(match[4], 10) : 23;
+                    const min = match[5] ? parseInt(match[5], 10) : 59;
+                    const sec = match[6] ? parseInt(match[6], 10) : 59;
+                    const ampm = match[7] ? match[7].toUpperCase() : null;
+
+                    if (ampm === 'PM' && hour < 12) hour += 12;
+                    if (ampm === 'AM' && hour === 12) hour = 0;
+
+                    return new Date(year, month, day, hour, min, sec);
+                }
+                // Match DD-MM-YYYY
+                match = cleanStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?$/i);
+                if (match) {
+                    const day = parseInt(match[1], 10);
+                    const month = parseInt(match[2], 10) - 1;
+                    const year = parseInt(match[3], 10);
+                    let hour = match[4] ? parseInt(match[4], 10) : 23;
+                    const min = match[5] ? parseInt(match[5], 10) : 59;
+                    const sec = match[6] ? parseInt(match[6], 10) : 59;
+                    const ampm = match[7] ? match[7].toUpperCase() : null;
+
+                    if (ampm === 'PM' && hour < 12) hour += 12;
+                    if (ampm === 'AM' && hour === 12) hour = 0;
+
+                    return new Date(year, month, day, hour, min, sec);
+                }
+                const d = new Date(dateStr);
+                return isNaN(d.getTime()) ? null : d;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function getRenewalCountdownInfo(expireDateStr, daysLeft, hoursLeft) {
+            const expDate = parseDateString(expireDateStr);
+            const now = new Date();
+
+            if (expDate) {
+                let diffMs = expDate.getTime() - now.getTime();
+
+                // If expiration timestamp has arrived or passed
+                if (diffMs <= 0) {
+                    const isToday = expDate.toDateString() === now.toDateString();
+                    if (isToday) {
+                        return {
+                            badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse",
+                            icon: "fa-solid fa-bell",
+                            text: "تجديد اليوم (مستحق الآن)",
+                            targetTime: null
+                        };
+                    } else {
+                        const daysAgo = Math.max(1, Math.floor(Math.abs(diffMs) / (1000 * 86400)));
+                        return {
+                            badgeClass: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+                            icon: "fa-solid fa-triangle-exclamation",
+                            text: `انتهت الصلاحية (منذ ${daysAgo} يوم)`,
+                            targetTime: null
+                        };
+                    }
+                }
+
+                const totalSec = Math.floor(diffMs / 1000);
+                const totalHours = Math.floor(totalSec / 3600);
+                const mins = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+
+                // Less than 24 hours -> Real-time countdown clock!
+                if (totalHours < 24) {
+                    const hStr = String(totalHours).padStart(2, '0');
+                    const mStr = String(mins).padStart(2, '0');
+                    const sStr = String(secs).padStart(2, '0');
+                    return {
+                        badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/40 font-mono shadow-sm",
+                        icon: "fa-solid fa-hourglass-half text-amber-400",
+                        text: `متبقي ${hStr}:${mStr}:${sStr} (اليوم)`,
+                        targetTime: expDate.getTime()
+                    };
+                }
+
+                // 24 to 48 hours -> Tomorrow
+                if (totalHours < 48) {
+                    return {
+                        badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+                        icon: "fa-solid fa-clock",
+                        text: `ينتهي غداً (${totalHours} ساعة)`,
+                        targetTime: expDate.getTime()
+                    };
+                }
+
+                const days = Math.floor(totalHours / 24);
+                let daysText = `متبقي ${days} يوم`;
+                if (days === 2) daysText = `متبقي يومان`;
+                else if (days >= 3 && days <= 10) daysText = `متبقي ${days} أيام`;
+
+                return {
+                    badgeClass: days <= 3 ? "bg-amber-500/15 text-amber-300 border-amber-500/30" : "bg-purple-500/10 text-purple-300 border border-purple-500/20",
+                    icon: "fa-regular fa-clock",
+                    text: daysText,
+                    targetTime: expDate.getTime()
+                };
+            }
+
+            // Fallback by days/hours numbers
+            const d = Number(daysLeft || 0);
+            const h = Number(hoursLeft || 0);
+            if (d <= 0 && h <= 0) {
+                return {
+                    badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse",
+                    icon: "fa-solid fa-bell",
+                    text: "تجديد اليوم (مستحق الآن)",
+                    targetTime: null
+                };
+            }
+            if (d <= 0 && h > 0) {
+                return {
+                    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/40 font-mono",
+                    icon: "fa-solid fa-hourglass-half text-amber-400",
+                    text: `متبقي ${h} ساعة (اليوم)`,
+                    targetTime: null
+                };
+            }
+            if (d === 1) {
+                return {
+                    badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+                    icon: "fa-solid fa-clock",
+                    text: `ينتهي غداً`,
+                    targetTime: null
+                };
+            }
+            let daysText = `متبقي ${d} يوم`;
+            if (d === 2) daysText = `متبقي يومان`;
+            else if (d >= 3 && d <= 10) daysText = `متبقي ${d} أيام`;
+            return {
+                badgeClass: d <= 3 ? "bg-amber-500/15 text-amber-300 border-amber-500/30" : "bg-purple-500/10 text-purple-300 border border-purple-500/20",
+                icon: "fa-regular fa-clock",
+                text: daysText,
+                targetTime: null
+            };
+        }
+
+        function updateAllCountdowns() {
+            const badges = document.querySelectorAll('.renewal-countdown');
+            const now = new Date().getTime();
+            badges.forEach(badge => {
+                const targetStr = badge.getAttribute('data-target');
+                if (!targetStr) return;
+                const target = parseInt(targetStr, 10);
+                if (isNaN(target)) return;
+
+                const diffMs = target - now;
+                const textSpan = badge.querySelector('.countdown-text');
+                const iconEl = badge.querySelector('i');
+                if (!textSpan) return;
+
+                if (diffMs <= 0) {
+                    textSpan.textContent = "تجديد اليوم (مستحق الآن)";
+                    badge.className = "renewal-countdown inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse";
+                    if (iconEl) iconEl.className = "fa-solid fa-bell text-[10px]";
+                    return;
+                }
+
+                const totalSec = Math.floor(diffMs / 1000);
+                const totalHours = Math.floor(totalSec / 3600);
+                const mins = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+
+                if (totalHours < 24) {
+                    const hStr = String(totalHours).padStart(2, '0');
+                    const mStr = String(mins).padStart(2, '0');
+                    const sStr = String(secs).padStart(2, '0');
+                    textSpan.textContent = `متبقي ${hStr}:${mStr}:${sStr} (اليوم)`;
+                    badge.className = "renewal-countdown inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm";
+                    if (iconEl) iconEl.className = "fa-solid fa-hourglass-half text-[10px] text-amber-400";
+                }
+            });
+        }
+
         // Render High-Density Executive Table View
         function renderTable(lines) {
             const tbody = document.getElementById('tableBody');
@@ -1279,6 +1473,7 @@
                 const mbName = mainBundle ? (mainBundle.name || 'الباقة الأساسية') : offerName;
                 const mbDays = Number(mainBundle?.days_left ?? mainBundle?.remaining_days ?? daysLeft);
                 let mbExpire = (mainBundle && mainBundle.expire_date && mainBundle.expire_date !== 'غير محدد') ? mainBundle.expire_date : expireDate;
+                const countdownInfo = getRenewalCountdownInfo(mbExpire, mbDays, q.hours_left);
 
                 let badgeColor = statusTag === 'critical' 
                     ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
@@ -1353,9 +1548,9 @@
                         <td class="py-3 px-4">
                             ${hasData ? `
                                 <div>
-                                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${mbDays <= 3 ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-purple-500/10 text-purple-300 border border-purple-500/20'}">
-                                        <i class="fa-regular fa-clock text-[10px]"></i>
-                                        <span>متبقي ${mbDays} يوم</span>
+                                    <div class="renewal-countdown inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${countdownInfo.badgeClass}" data-target="${countdownInfo.targetTime || ''}">
+                                        <i class="${countdownInfo.icon} text-[10px]"></i>
+                                        <span class="countdown-text">${countdownInfo.text}</span>
                                     </div>
                                     <div class="text-[11px] text-slate-400 mt-1 font-mono">${mbExpire}</div>
                                 </div>
@@ -1445,6 +1640,7 @@
                                             const tbInitial = Number(tb.initial_amount || 0);
                                             const tbRemain = Number(tb.current_amount || 0);
                                             const tbPct = tbInitial > 0 ? Math.round((tbRemain / tbInitial) * 100) : 0;
+                                            const tbCountdown = getRenewalCountdownInfo(tb.expire_date || expireDate, tb.days_left ?? daysLeft, tb.hours_left);
                                             return `
                                                 <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs space-y-1">
                                                     <div class="flex items-center justify-between">
@@ -1456,7 +1652,10 @@
                                                     </div>
                                                     <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
                                                         <span>تاريخ الانتهاء: <strong class="text-slate-300">${tb.expire_date || expireDate}</strong></span>
-                                                        <span class="text-sky-300 font-semibold">⏳ متبقي ${tb.days_left || daysLeft} يوم</span>
+                                                        <div class="renewal-countdown inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${tbCountdown.badgeClass}" data-target="${tbCountdown.targetTime || ''}">
+                                                            <i class="${tbCountdown.icon} text-[9px]"></i>
+                                                            <span class="countdown-text">${tbCountdown.text}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             `;
@@ -1519,6 +1718,7 @@
                 const avatarLetter = customerName.trim().charAt(0) || 'و';
                 const progressColor = statusTag === 'critical' ? 'bg-rose-500' : (statusTag === 'warning' ? 'bg-amber-500' : 'bg-emerald-500');
                 const isSelected = selectedLineIds.has(line.id);
+                const countdownInfo = getRenewalCountdownInfo(expireDate, daysLeft, q.hours_left);
 
                 return `
                     <div class="bg-slate-900/80 border border-slate-800/90 hover:border-purple-500/40 rounded-2xl p-4 shadow-md transition flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 ${isSelected ? 'border-purple-500/60 bg-purple-950/20' : ''}">
@@ -1559,7 +1759,10 @@
                                     </div>
                                     <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
                                         <span>تجديد: <strong class="text-slate-300">${expireDate}</strong></span>
-                                        <span class="font-bold ${daysLeft <= 3 ? 'text-amber-400' : 'text-purple-300'}">⏳ متبقي ${daysLeft} يوم</span>
+                                        <div class="renewal-countdown inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold border ${countdownInfo.badgeClass}" data-target="${countdownInfo.targetTime || ''}">
+                                            <i class="${countdownInfo.icon} text-[10px]"></i>
+                                            <span class="countdown-text">${countdownInfo.text}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ` : `<span class="text-rose-400 text-xs">لم يتم جلب البيانات</span>`}
