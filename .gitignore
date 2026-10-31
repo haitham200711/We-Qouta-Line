@@ -18,6 +18,9 @@ npm-debug.log*
 # Sensitive Data & User State
 data/lines.json
 data/settings.json
+data/sessions.json
+data/auth.json
+data/wa_auth/
 *.tmp
 *.log
 

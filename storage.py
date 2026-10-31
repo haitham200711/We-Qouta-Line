@@ -138,6 +138,8 @@ class Storage:
       notes: str = "",
       balance: Optional[float] = None,
       points: Optional[int] = None,
+      whatsapp_enabled: bool = True,
+      whatsapp_recipient: str = "",
   ) -> Dict[str, Any]:
     lines = self.get_lines()
 
@@ -155,6 +157,8 @@ class Storage:
         "balance": balance,
         "points": points,
         "notes": notes.strip(),
+        "whatsapp_enabled": whatsapp_enabled,
+        "whatsapp_recipient": whatsapp_recipient.strip(),
         "is_active": True,
         "last_data": None,
         "last_error": None,

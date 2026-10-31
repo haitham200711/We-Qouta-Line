@@ -693,6 +693,21 @@
                     <input type="text" id="editNotes" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
                 </div>
 
+                <!-- WhatsApp Alert Options for this specific Line -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-emerald-400 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>إشعارات واتساب لهذا الخط</span>
+                        </label>
+                        <input type="checkbox" id="editWhatsAppEnabled" class="w-4 h-4 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500 bg-slate-900 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">رقم الواتساب المستلم المخصص (اختياري):</label>
+                        <input type="text" id="editWhatsAppRecipient" placeholder="مثال: 01012345678 (اتركه فارغاً للاستلام على الرقم العام)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
                 <div class="pt-2 flex items-center justify-end gap-2.5">
                     <button type="button" onclick="closeEditModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">إلغاء</button>
                     <button type="submit" id="btnSubmitEdit" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/30">
@@ -703,23 +718,106 @@
         </div>
     </div>
 
-    <!-- Modal: Settings & Telegram -->
+    <!-- Modal: Settings & Notifications -->
     <div id="modalSettings" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSettingsModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="flex items-center gap-3 mb-5">
-                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-sliders"></i>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600/30 to-purple-600/30 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-lg shadow-sm">
+                    <i class="fa-solid fa-bell"></i>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-white">إعدادات النظام وتنبيهات التيليجرام</h3>
-                    <p class="text-xs text-slate-400">تخصيص الإشعارات التلقائية وفترات التحديث</p>
+                    <h3 class="text-base font-bold text-white">إعدادات الإشعارات (واتساب وتيليجرام)</h3>
+                    <p class="text-xs text-slate-400">تخصيص تنبيهات الباقات والخطوط وفترات المزامنة</p>
                 </div>
             </div>
 
             <form id="formSettings" onsubmit="submitSettings(event)" class="space-y-4">
+                <!-- WhatsApp Section -->
+                <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800/90 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 text-2xl"></i>
+                            <div>
+                                <span class="text-sm font-bold text-white block">إشعارات الواتساب (WhatsApp)</span>
+                                <span class="text-[11px] text-slate-400">مكتبة Baileys المستقرة والمجانية 100%</span>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="settingWhatsAppEnabled" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                    </div>
+
+                    <!-- Connection Status Banner -->
+                    <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+                        <div class="flex items-center gap-2.5">
+                            <span id="waStatusDot" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                            <div>
+                                <span id="waStatusText" class="text-xs font-bold text-slate-200">غير متصل</span>
+                                <span id="waStatusSub" class="text-[11px] text-slate-400 block">اضغط على زر ربط الحساب للبدء</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openWhatsAppConnectModal()" id="btnOpenWaConnect" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-qrcode text-[11px]"></i>
+                                <span>ربط الحساب</span>
+                            </button>
+                            <button type="button" onclick="disconnectWhatsApp()" id="btnDisconnectWa" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition" title="تسجيل الخروج">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">رقم الواتساب الافتراضي لاستلام الإشعارات:</label>
+                            <input type="text" id="settingWhatsAppDefaultPhone" placeholder="مثال: 0106923040 أو 20106923040" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">بوابة الإرسال:</label>
+                            <select id="settingWhatsAppProvider" onchange="toggleWhatsAppProviderFields()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                <option value="baileys">واتساب ويب مباشر (Baileys) ⭐ موصى به</option>
+                                <option value="callmebot">بوابة CallMeBot (بدون مسح باركود)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- CallMeBot extra fields (hidden by default) -->
+                    <div id="callmebotFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-800/60">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">CallMeBot Phone Number:</label>
+                            <input type="text" id="settingCallMeBotPhone" placeholder="+2010xxxxxxxx" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">CallMeBot API Key:</label>
+                            <input type="text" id="settingCallMeBotApiKey" placeholder="123456" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Alert Triggers -->
+                    <div class="space-y-1.5 pt-1">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                            <input type="checkbox" id="settingWhatsAppLowQuota" checked class="w-3.5 h-3.5 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500 bg-slate-900">
+                            <span>إرسال تنبيه واتساب عند اقتراب انتهاء الجيجات (Low Quota)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                            <input type="checkbox" id="settingWhatsAppRenewal" checked class="w-3.5 h-3.5 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500 bg-slate-900">
+                            <span>إرسال تنبيه واتساب عند اقتراب موعد التجديد (خلال 3 أيام أو اليوم)</span>
+                        </label>
+                    </div>
+
+                    <div class="pt-1 flex items-center justify-between">
+                        <button type="button" onclick="testWhatsAppBtn()" id="btnTestWhatsApp" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition">
+                            <i class="fa-brands fa-whatsapp"></i>
+                            <span>إرسال رسالة تجربة للواتساب</span>
+                        </button>
+                        <span id="testWhatsAppStatus" class="text-xs"></span>
+                    </div>
+                </div>
+
                 <!-- Telegram Section -->
                 <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800/80 space-y-3">
                     <div class="flex items-center justify-between">
@@ -793,6 +891,85 @@
                     <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-600/30">حفظ الإعدادات</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Connect WhatsApp (QR & Pairing Code) -->
+    <div id="modalWhatsAppConnect" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <button onclick="closeWhatsAppConnectModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl shadow-sm">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">ربط حساب واتساب</h3>
+                    <p class="text-xs text-slate-400">مكتبة Baileys المباشرة والمجانية 100%</p>
+                </div>
+            </div>
+
+            <!-- Tab Switcher: QR Code vs Pairing Code -->
+            <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-xl mb-4 border border-slate-800">
+                <button type="button" onclick="switchWaTab('qr')" id="tabBtnWaQr" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition bg-purple-600 text-white">
+                    <i class="fa-solid fa-qrcode ml-1"></i> مسح الباركود (QR)
+                </button>
+                <button type="button" onclick="switchWaTab('pair')" id="tabBtnWaPair" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-key ml-1"></i> كود الهاتف (بدون كاميرا)
+                </button>
+            </div>
+
+            <!-- View 1: QR Code -->
+            <div id="waViewQr" class="text-center space-y-3">
+                <div class="bg-white p-3 rounded-2xl inline-block shadow-inner border border-slate-300 min-w-[220px] min-h-[220px] flex items-center justify-center relative">
+                    <div id="waQrSpinner" class="flex flex-col items-center justify-center text-slate-600 gap-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-purple-600"></i>
+                        <span class="text-xs font-bold">جاري توليد الرمز...</span>
+                    </div>
+                    <img id="waQrImg" src="" alt="WhatsApp QR Code" class="w-52 h-52 hidden rounded-lg">
+                </div>
+                <div class="text-[11px] text-slate-400 space-y-1 text-right bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                    <p class="font-bold text-slate-200">طريقة الربط من هاتفك:</p>
+                    <p>1. افتح تطبيق واتساب ثم اضغط على القائمة (⋮) أو الإعدادات.</p>
+                    <p>2. اختر <strong class="text-purple-300">"الأجهزة المرتبطة" (Linked Devices)</strong>.</p>
+                    <p>3. اضغط <strong class="text-emerald-400">"ربط جهاز"</strong> ووجّه الكاميرا لمسح هذا الرمز.</p>
+                </div>
+            </div>
+
+            <!-- View 2: Pairing Code -->
+            <div id="waViewPair" class="hidden space-y-3 text-right">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">أدخل رقم هاتفك المرتبط بواتساب:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="waPairInputPhone" placeholder="مثال: 0106923040 أو 20106923040" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
+                        <button type="button" onclick="generatePairingCode()" id="btnGeneratePair" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shrink-0">
+                            طلب الكود
+                        </button>
+                    </div>
+                </div>
+
+                <div id="waPairCodeContainer" class="hidden text-center bg-slate-950 p-4 rounded-xl border border-emerald-500/30 space-y-2">
+                    <p class="text-xs text-slate-400 font-medium">كود الاقتران الخاص بك هو:</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <span id="waPairCodeDisplay" class="font-mono text-2xl font-black text-emerald-400 tracking-widest bg-slate-900 px-4 py-1.5 rounded-xl border border-emerald-500/40 select-all"></span>
+                        <button type="button" onclick="copyPairingCode()" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 hover:text-emerald-400 flex items-center justify-center text-sm" title="نسخ الكود">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400">في تطبيق واتساب: <strong>الأجهزة المرتبطة</strong> > <strong>الربط برقم الهاتف بدلاً من ذلك</strong> > أدخل الكود أعلاه.</p>
+                </div>
+            </div>
+
+            <!-- Footer status -->
+            <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                <span id="waModalStatusText" class="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> بانتظار الاقتران...
+                </span>
+                <button type="button" onclick="closeWhatsAppConnectModal()" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    إغلاق
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1613,6 +1790,9 @@
                         <!-- Quick Actions -->
                         <td class="py-3 px-4 text-center">
                             <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="sendLineWhatsApp('${line.id}', '${line.landline}', '${escapeHtml(customerName)}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-600/30 text-emerald-400 border border-slate-700/80 flex items-center justify-center text-xs transition" title="إرسال تقرير الخط عبر واتساب">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                </button>
                                 <button onclick="refreshSingleLine('${line.id}', this)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-purple-600/30 text-slate-300 hover:text-purple-300 border border-slate-700/80 flex items-center justify-center text-xs transition" title="فحص وتحديث الخط">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
@@ -1782,6 +1962,10 @@
 
                         <!-- Actions -->
                         <div class="flex items-center gap-2 justify-end">
+                            <button onclick="sendLineWhatsApp('${line.id}', '${line.landline}', '${escapeHtml(customerName)}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600/30 text-emerald-400 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition" title="إرسال تقرير الخط عبر واتساب">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>واتساب</span>
+                            </button>
                             <button onclick="refreshSingleLine('${line.id}', this)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
                                 <i class="fa-solid fa-rotate"></i>
                                 <span>فحص</span>
@@ -1876,6 +2060,8 @@
             const ptsVal = (line.points !== undefined && line.points !== null) ? line.points : ((q.points !== undefined && q.points !== null) ? q.points : '');
             document.getElementById('editBalance').value = balVal !== '' ? balVal : '';
             document.getElementById('editPoints').value = ptsVal !== '' ? ptsVal : '';
+            document.getElementById('editWhatsAppEnabled').checked = line.whatsapp_enabled !== false;
+            document.getElementById('editWhatsAppRecipient').value = line.whatsapp_recipient || '';
 
             document.getElementById('modalEditLine').classList.remove('hidden');
         }
@@ -1893,8 +2079,10 @@
             const notes = document.getElementById('editNotes').value.trim();
             const balanceInput = document.getElementById('editBalance').value.trim();
             const pointsInput = document.getElementById('editPoints').value.trim();
+            const whatsapp_enabled = document.getElementById('editWhatsAppEnabled').checked;
+            const whatsapp_recipient = document.getElementById('editWhatsAppRecipient').value.trim();
 
-            const body = { customer_name, label, notes };
+            const body = { customer_name, label, notes, whatsapp_enabled, whatsapp_recipient };
             if (password) body.password = password;
             if (balanceInput !== '') {
                 body.balance = parseFloat(balanceInput);
@@ -2150,6 +2338,276 @@
             }
         }
 
+        // WhatsApp Settings & Management
+        let waPollingTimer = null;
+
+        function toggleWhatsAppProviderFields() {
+            const provider = document.getElementById('settingWhatsAppProvider')?.value || 'baileys';
+            const cbFields = document.getElementById('callmebotFields');
+            if (cbFields) {
+                cbFields.classList.toggle('hidden', provider !== 'callmebot');
+            }
+        }
+
+        async function checkWhatsAppStatus() {
+            const dot = document.getElementById('waStatusDot');
+            const text = document.getElementById('waStatusText');
+            const sub = document.getElementById('waStatusSub');
+            const btnConnect = document.getElementById('btnOpenWaConnect');
+            const btnDisconnect = document.getElementById('btnDisconnectWa');
+
+            try {
+                const res = await apiFetch('/api/whatsapp/status');
+                const data = await res.json();
+
+                if (data.connected) {
+                    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                    if (text) text.textContent = `متصل بالرقم: +${data.phone || 'واتساب'}`;
+                    if (text) text.className = "text-xs font-bold text-emerald-400";
+                    if (sub) sub.textContent = "الخدمة نشطة وجاهزة لإرسال الإشعارات فوراً";
+                    if (btnConnect) btnConnect.classList.add('hidden');
+                    if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+                } else if (data.status === 'qr_ready') {
+                    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+                    if (text) text.textContent = "بانتظار مسح رمز QR من الهاتف";
+                    if (text) text.className = "text-xs font-bold text-amber-400";
+                    if (sub) sub.textContent = "اضغط على زر ربط الحساب لمسح الباركود";
+                    if (btnConnect) btnConnect.classList.remove('hidden');
+                    if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                } else if (data.status === 'connecting') {
+                    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse";
+                    if (text) text.textContent = "جاري الاتصال بخادم واتساب...";
+                    if (text) text.className = "text-xs font-bold text-sky-400";
+                    if (sub) sub.textContent = "يرجى الانتظار ثوانٍ معدودة";
+                    if (btnConnect) btnConnect.classList.remove('hidden');
+                    if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                } else {
+                    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                    if (text) text.textContent = "غير متصل";
+                    if (text) text.className = "text-xs font-bold text-rose-400";
+                    if (sub) sub.textContent = "اضغط على زر ربط الحساب لربط رقمك";
+                    if (btnConnect) btnConnect.classList.remove('hidden');
+                    if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                }
+                return data;
+            } catch (e) {
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+                if (text) text.textContent = "الخدمة غير نشطة";
+                if (text) text.className = "text-xs font-bold text-slate-400";
+                if (sub) sub.textContent = "تأكد من تشغيل خدمة واتساب على السيرفر";
+                return { connected: false };
+            }
+        }
+
+        async function openWhatsAppConnectModal() {
+            document.getElementById('modalWhatsAppConnect').classList.remove('hidden');
+            switchWaTab('qr');
+            fetchWaQrLoop();
+            if (waPollingTimer) clearInterval(waPollingTimer);
+            waPollingTimer = setInterval(fetchWaQrLoop, 3500);
+        }
+
+        function closeWhatsAppConnectModal() {
+            if (waPollingTimer) {
+                clearInterval(waPollingTimer);
+                waPollingTimer = null;
+            }
+            document.getElementById('modalWhatsAppConnect').classList.add('hidden');
+            checkWhatsAppStatus();
+        }
+
+        async function fetchWaQrLoop() {
+            const qrImg = document.getElementById('waQrImg');
+            const spinner = document.getElementById('waQrSpinner');
+            const statusTxt = document.getElementById('waModalStatusText');
+
+            try {
+                const res = await apiFetch('/api/whatsapp/qr');
+                const data = await res.json();
+
+                if (data.status === 'connected') {
+                    statusTxt.innerHTML = '<span class="text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> تم الربط بنجاح!</span>';
+                    showToast("تم ربط حساب واتساب بنجاح!", "success");
+                    setTimeout(() => {
+                        closeWhatsAppConnectModal();
+                    }, 1500);
+                    return;
+                }
+
+                if (data.has_qr && data.qr) {
+                    qrImg.src = data.qr;
+                    qrImg.classList.remove('hidden');
+                    spinner.classList.add('hidden');
+                    statusTxt.innerHTML = '<span class="text-amber-400 font-bold"><i class="fa-solid fa-camera"></i> وجّه كاميرا الهاتف لمسح الباركود</span>';
+                } else {
+                    statusTxt.innerHTML = '<span class="text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> جاري إنشاء الرمز...</span>';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function switchWaTab(tab) {
+            const viewQr = document.getElementById('waViewQr');
+            const viewPair = document.getElementById('waViewPair');
+            const btnQr = document.getElementById('tabBtnWaQr');
+            const btnPair = document.getElementById('tabBtnWaPair');
+
+            if (tab === 'qr') {
+                viewQr.classList.remove('hidden');
+                viewPair.classList.add('hidden');
+                btnQr.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition bg-purple-600 text-white";
+                btnPair.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
+            } else {
+                viewQr.classList.add('hidden');
+                viewPair.classList.remove('hidden');
+                btnPair.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition bg-emerald-600 text-white";
+                btnQr.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
+                const phoneInput = document.getElementById('waPairInputPhone');
+                const defaultPhone = document.getElementById('settingWhatsAppDefaultPhone')?.value;
+                if (!phoneInput.value && defaultPhone) {
+                    phoneInput.value = defaultPhone;
+                }
+            }
+        }
+
+        async function generatePairingCode() {
+            const phoneInput = document.getElementById('waPairInputPhone');
+            const phone = phoneInput.value.trim();
+            const btn = document.getElementById('btnGeneratePair');
+            const container = document.getElementById('waPairCodeContainer');
+            const display = document.getElementById('waPairCodeDisplay');
+
+            if (!phone) {
+                showToast("يرجى كتابة رقم الهاتف لطلب الكود", "error");
+                phoneInput.focus();
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الطلب...';
+
+            try {
+                const res = await apiFetch('/api/whatsapp/pair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                if (data.success && data.code) {
+                    display.textContent = data.code;
+                    container.classList.remove('hidden');
+                    showToast("تم توليد كود الاقتران بنجاح!", "success");
+                    // Poll for connection
+                    if (!waPollingTimer) {
+                        waPollingTimer = setInterval(fetchWaQrLoop, 3000);
+                    }
+                } else {
+                    showToast(data.error || "فشل توليد كود الاقتران", "error");
+                }
+            } catch (err) {
+                showToast("حدث خطأ في الاتصال بالخادم", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'طلب الكود';
+            }
+        }
+
+        function copyPairingCode() {
+            const code = document.getElementById('waPairCodeDisplay').textContent.trim();
+            if (code) {
+                copyToClipboard(code, `تم نسخ كود الاقتران: ${code}`);
+            }
+        }
+
+        async function disconnectWhatsApp() {
+            if (!confirm("هل أنت متأكد من تسجيل الخروج من حساب واتساب ومسح الجلسة؟")) return;
+            try {
+                const res = await apiFetch('/api/whatsapp/disconnect', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("تم تسجيل الخروج من واتساب بنجاح", "success");
+                    checkWhatsAppStatus();
+                } else {
+                    showToast(data.error || "فشل تسجيل الخروج", "error");
+                }
+            } catch (e) {
+                showToast("خطأ أثناء تسجيل الخروج", "error");
+            }
+        }
+
+        async function testWhatsAppBtn() {
+            const phone = document.getElementById('settingWhatsAppDefaultPhone').value.trim();
+            const statusEl = document.getElementById('testWhatsAppStatus');
+            const btn = document.getElementById('btnTestWhatsApp');
+
+            if (!phone) {
+                statusEl.className = "text-xs text-rose-400 font-bold";
+                statusEl.textContent = "يرجى كتابة رقم الهاتف أولاً";
+                return;
+            }
+
+            btn.disabled = true;
+            statusEl.className = "text-xs text-amber-400 font-bold";
+            statusEl.textContent = "جاري إرسال رسالة التجربة...";
+
+            try {
+                const res = await apiFetch('/api/whatsapp/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    statusEl.className = "text-xs text-emerald-400 font-bold";
+                    statusEl.textContent = "✅ تم إرسال رسالة الواتساب بنجاح!";
+                    showToast("وصلت رسالة التجربة إلى واتساب بنجاح!", "success");
+                } else {
+                    statusEl.className = "text-xs text-rose-400 font-bold";
+                    statusEl.textContent = "❌ " + (data.error || data.detail || "فشل الإرسال");
+                    showToast(data.error || data.detail || "فشل الإرسال عبر واتساب", "error");
+                }
+            } catch (err) {
+                statusEl.className = "text-xs text-rose-400 font-bold";
+                statusEl.textContent = "❌ خطأ في الاتصال";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function sendLineWhatsApp(lineId, landline, name) {
+            const line = allLines.find(l => l.id === lineId);
+            const targetPhone = (line && line.whatsapp_recipient) || document.getElementById('settingWhatsAppDefaultPhone')?.value || '';
+            const promptMsg = targetPhone 
+                ? `هل تريد إرسال تقرير استهلاك الخط (${landline} - ${name || 'مشترك وي'}) إلى رقم الواتساب (${targetPhone})؟`
+                : `أدخل رقم الواتساب لإرسال تقرير الخط (${landline} - ${name || 'مشترك وي'}):`;
+
+            let recipient = targetPhone;
+            if (!targetPhone) {
+                recipient = prompt(promptMsg, "");
+                if (!recipient || !recipient.trim()) return;
+            } else {
+                if (!confirm(promptMsg)) return;
+            }
+
+            showToast(`جاري إرسال تقرير الخط ${landline} عبر واتساب...`, "info");
+            try {
+                const res = await apiFetch(`/api/lines/${lineId}/send-whatsapp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: recipient.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✅ تم إرسال تقرير الخط ${landline} بنجاح إلى واتساب!`, "success");
+                } else {
+                    showToast(data.detail || data.error || "فشل إرسال التقرير عبر واتساب", "error");
+                }
+            } catch (err) {
+                showToast("خطأ أثناء الاتصال بالخادم لإرسال الواتساب", "error");
+            }
+        }
+
         // Settings Modal
         async function openSettingsModal() {
             try {
@@ -2157,6 +2615,20 @@
                 const data = await res.json();
                 if (data.success && data.settings) {
                     const s = data.settings;
+                    // WhatsApp Settings
+                    document.getElementById('settingWhatsAppEnabled').checked = !!s.whatsapp_enabled;
+                    document.getElementById('settingWhatsAppDefaultPhone').value = s.whatsapp_default_phone || '';
+                    document.getElementById('settingWhatsAppProvider').value = s.whatsapp_provider || 'baileys';
+                    document.getElementById('settingWhatsAppLowQuota').checked = s.whatsapp_alert_on_low_quota !== false;
+                    document.getElementById('settingWhatsAppRenewal').checked = s.whatsapp_alert_on_renewal !== false;
+                    if (document.getElementById('settingCallMeBotPhone')) {
+                        document.getElementById('settingCallMeBotPhone').value = s.whatsapp_callmebot_phone || '';
+                        document.getElementById('settingCallMeBotApiKey').value = s.whatsapp_callmebot_apikey || '';
+                    }
+                    toggleWhatsAppProviderFields();
+                    checkWhatsAppStatus();
+
+                    // Telegram Settings
                     document.getElementById('settingTelegramEnabled').checked = !!s.telegram_enabled;
                     document.getElementById('settingBotToken').value = s.telegram_bot_token || '';
                     document.getElementById('settingChatId').value = s.telegram_chat_id || '';
@@ -2166,6 +2638,7 @@
                     const mins = s.auto_refresh_minutes || (s.auto_refresh_hours ? s.auto_refresh_hours * 60 : 30);
                     document.getElementById('settingAutoRefreshMinutes').value = mins;
                     document.getElementById('testTelegramStatus').textContent = '';
+                    document.getElementById('testWhatsAppStatus').textContent = '';
                 }
             } catch (err) {
                 console.error(err);
@@ -2179,6 +2652,15 @@
         async function submitSettings(e) {
             e.preventDefault();
             const body = {
+                // WhatsApp
+                whatsapp_enabled: document.getElementById('settingWhatsAppEnabled').checked,
+                whatsapp_default_phone: document.getElementById('settingWhatsAppDefaultPhone').value.trim(),
+                whatsapp_provider: document.getElementById('settingWhatsAppProvider').value,
+                whatsapp_callmebot_phone: document.getElementById('settingCallMeBotPhone')?.value.trim() || '',
+                whatsapp_callmebot_apikey: document.getElementById('settingCallMeBotApiKey')?.value.trim() || '',
+                whatsapp_alert_on_low_quota: document.getElementById('settingWhatsAppLowQuota').checked,
+                whatsapp_alert_on_renewal: document.getElementById('settingWhatsAppRenewal').checked,
+                // Telegram
                 telegram_enabled: document.getElementById('settingTelegramEnabled').checked,
                 telegram_bot_token: document.getElementById('settingBotToken').value.trim(),
                 telegram_chat_id: document.getElementById('settingChatId').value.trim(),

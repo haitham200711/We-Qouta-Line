@@ -4,9 +4,13 @@
   "description": "نظام متابعة واستعلام جيجات خطوط وي الأرضي (WE Quota Monitor)",
   "main": "fetch_line.js",
   "scripts": {
-    "start": "node fetch_line.js"
+    "start": "node fetch_line.js",
+    "whatsapp": "node whatsapp_service.js"
   },
   "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
     "ws": "^8.18.0"
   },
   "keywords": [

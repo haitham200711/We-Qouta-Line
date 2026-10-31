@@ -11,6 +11,17 @@ from pydantic import BaseModel
 from scheduler import scheduler
 from storage import storage
 from telegram_notifier import check_and_send_alerts, test_telegram_connection
+from whatsapp_notifier import (
+    ensure_whatsapp_service,
+    get_whatsapp_status,
+    get_whatsapp_qr,
+    request_whatsapp_pairing,
+    disconnect_whatsapp,
+    send_whatsapp_message,
+    test_whatsapp_connection,
+    build_line_whatsapp_summary,
+    check_and_send_whatsapp_alerts,
+)
 from we_api import WEApiClient
 
 try:
@@ -92,6 +103,8 @@ class LineCreate(BaseModel):
   balance: Optional[float] = None
   points: Optional[int] = None
   notes: Optional[str] = ""
+  whatsapp_enabled: Optional[bool] = True
+  whatsapp_recipient: Optional[str] = ""
   fetch_now: Optional[bool] = True
 
 
@@ -102,6 +115,8 @@ class LineUpdate(BaseModel):
   points: Optional[int] = None
   password: Optional[str] = None
   notes: Optional[str] = None
+  whatsapp_enabled: Optional[bool] = None
+  whatsapp_recipient: Optional[str] = None
   is_active: Optional[bool] = None
 
 
@@ -114,6 +129,15 @@ class SettingsUpdate(BaseModel):
   alert_days_left: Optional[int] = None
   auto_refresh_hours: Optional[int] = None
   auto_refresh_minutes: Optional[int] = None
+  # WhatsApp Settings
+  whatsapp_enabled: Optional[bool] = None
+  whatsapp_provider: Optional[str] = None  # 'baileys' or 'callmebot'
+  whatsapp_default_phone: Optional[str] = None
+  whatsapp_callmebot_phone: Optional[str] = None
+  whatsapp_callmebot_apikey: Optional[str] = None
+  whatsapp_alert_on_low_quota: Optional[bool] = None
+  whatsapp_alert_on_renewal: Optional[bool] = None
+  whatsapp_alert_on_error: Optional[bool] = None
 
 
 class TelegramTest(BaseModel):
@@ -121,10 +145,24 @@ class TelegramTest(BaseModel):
   chat_id: str
 
 
+class WhatsAppTest(BaseModel):
+  phone: Optional[str] = None
+
+
+class WhatsAppPairRequest(BaseModel):
+  phone: str
+
+
+class WhatsAppSendCustom(BaseModel):
+  to: str
+  message: str
+
+
 # --- Lifecycle Events ---
 @app.on_event("startup")
 def startup_event():
   scheduler.start()
+  ensure_whatsapp_service()
   logger.info("WE Quota Monitor Server started.")
 
 
@@ -264,6 +302,8 @@ def add_line(
       balance=item.balance,
       points=item.points,
       notes=item.notes,
+      whatsapp_enabled=item.whatsapp_enabled if item.whatsapp_enabled is not None else True,
+      whatsapp_recipient=item.whatsapp_recipient or "",
   )
 
   if item.fetch_now:
@@ -415,6 +455,7 @@ def refresh_line(line_id: str, user: str = Depends(get_current_user)):
   updated_line = storage.get_line(line_id)
   if updated_line and data.get("success"):
     check_and_send_alerts(updated_line, settings)
+    check_and_send_whatsapp_alerts(updated_line, settings)
 
   return {"success": True, "data": data}
 
@@ -435,6 +476,7 @@ def get_settings(user: str = Depends(get_current_user)):
   settings = storage.get_settings()
   safe = settings.copy()
   safe.pop("last_alerts_sent", None)
+  safe.pop("last_whatsapp_alerts_sent", None)
   safe.pop("admin_password_hash", None)
   return {"success": True, "settings": safe}
 
@@ -447,6 +489,7 @@ def save_settings(
   updated = storage.update_settings(updates)
   safe = updated.copy()
   safe.pop("last_alerts_sent", None)
+  safe.pop("last_whatsapp_alerts_sent", None)
   safe.pop("admin_password_hash", None)
   return {
       "success": True,
@@ -461,6 +504,96 @@ def test_telegram(
 ):
   result = test_telegram_connection(payload.bot_token, payload.chat_id)
   return result
+
+
+# --- WhatsApp Endpoints ---
+@app.get("/api/whatsapp/status")
+def api_whatsapp_status(user: str = Depends(get_current_user)):
+  settings = storage.get_settings()
+  return get_whatsapp_status(settings)
+
+
+@app.get("/api/whatsapp/qr")
+def api_whatsapp_qr(user: str = Depends(get_current_user)):
+  return get_whatsapp_qr()
+
+
+@app.post("/api/whatsapp/pair")
+def api_whatsapp_pair(
+    payload: WhatsAppPairRequest, user: str = Depends(get_current_user)
+):
+  return request_whatsapp_pairing(payload.phone)
+
+
+@app.post("/api/whatsapp/disconnect")
+def api_whatsapp_disconnect(user: str = Depends(get_current_user)):
+  return disconnect_whatsapp()
+
+
+@app.post("/api/whatsapp/test")
+def api_whatsapp_test(
+    payload: WhatsAppTest, user: str = Depends(get_current_user)
+):
+  settings = storage.get_settings()
+  target_phone = payload.phone or settings.get("whatsapp_default_phone")
+  if not target_phone:
+    raise HTTPException(
+        status_code=400, detail="يرجى إدخال رقم الواتساب المستلم للتجربة"
+    )
+  result = test_whatsapp_connection(target_phone, settings)
+  if not result.get("success"):
+    raise HTTPException(
+        status_code=400, detail=result.get("error", "فشل إرسال رسالة التجربة")
+    )
+  return result
+
+
+@app.post("/api/whatsapp/send")
+def api_whatsapp_send(
+    payload: WhatsAppSendCustom, user: str = Depends(get_current_user)
+):
+  settings = storage.get_settings()
+  result = send_whatsapp_message(payload.to, payload.message, settings)
+  if not result.get("success"):
+    raise HTTPException(
+        status_code=400, detail=result.get("error", "فشل إرسال رسالة الواتساب")
+    )
+  return result
+
+
+@app.post("/api/lines/{line_id}/send-whatsapp")
+def api_send_line_whatsapp(
+    line_id: str,
+    payload: Optional[WhatsAppTest] = None,
+    user: str = Depends(get_current_user),
+):
+  line = storage.get_line(line_id)
+  if not line:
+    raise HTTPException(status_code=404, detail="الخط غير موجود")
+
+  settings = storage.get_settings()
+  target_phone = (
+      (payload.phone if (payload and payload.phone) else None)
+      or line.get("whatsapp_recipient")
+      or settings.get("whatsapp_default_phone")
+  )
+  if not target_phone:
+    raise HTTPException(
+        status_code=400,
+        detail="يرجى تحديد رقم واتساب مستلم إما في الخط أو في الإعدادات العامة",
+    )
+
+  msg = build_line_whatsapp_summary(line)
+  result = send_whatsapp_message(target_phone, msg, settings)
+  if not result.get("success"):
+    raise HTTPException(
+        status_code=400,
+        detail=result.get("error", "فشل إرسال تقرير الواتساب"),
+    )
+  return {
+      "success": True,
+      "message": f"تم إرسال تقرير الخط بنجاح إلى الرقم: {target_phone}",
+  }
 
 
 @app.get("/api/stats")

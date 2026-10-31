@@ -3,6 +3,7 @@ import threading
 import time
 from storage import storage
 from telegram_notifier import check_and_send_alerts
+from whatsapp_notifier import check_and_send_whatsapp_alerts
 from we_api import WEApiClient
 
 logger = logging.getLogger("scheduler")
@@ -40,6 +41,7 @@ class QuotaScheduler:
           updated_line = storage.get_line(line_id)
           if updated_line:
             check_and_send_alerts(updated_line, settings)
+            check_and_send_whatsapp_alerts(updated_line, settings)
         else:
           results["failed"] += 1
 
