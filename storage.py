@@ -92,7 +92,10 @@ DEFAULT_SETTINGS = {
 class Storage:
 
   def __init__(self):
+    self.base_dir = BASE_DIR
+    self.data_dir = DATA_DIR
     os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(os.path.join(DATA_DIR, "we_sessions"), exist_ok=True)
     if not os.path.exists(LINES_FILE):
       self._save_json(LINES_FILE, [])
     if not os.path.exists(SETTINGS_FILE):
@@ -226,7 +229,7 @@ class Storage:
       return
     import shutil
     session_dir = os.path.join(
-        self.base_dir, "data", "we_sessions", f"prof_{landline.strip()}"
+        DATA_DIR, "we_sessions", f"prof_{landline.strip()}"
     )
     if os.path.exists(session_dir):
       try:
