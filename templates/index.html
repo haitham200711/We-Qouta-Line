@@ -24,9 +24,9 @@
                     colors: {
                         we: {
                             purple: '#4a154b',
-                            dark: '#1e0c24',
+                            dark: '#0e0714',
                             light: '#6c1d6d',
-                            accent: '#8e24aa'
+                            accent: '#bd10e0'
                         }
                     }
                 }
@@ -36,22 +36,23 @@
     <style>
         body {
             font-family: 'Cairo', sans-serif;
-            background-color: #090d16;
+            background-color: #070a12;
+            color: #f1f5f9;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #0f172a;
+            background: #0b0f19;
         }
         ::-webkit-scrollbar-thumb {
-            background: #334155;
+            background: #232d42;
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+            background: #3b4968;
         }
         .pulse-dot {
             box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
@@ -62,54 +63,53 @@
             70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
-        /* Details animation */
-        details summary::-webkit-details-marker {
-            display: none;
+        .glow-bar {
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
         }
-        details[open] summary .accordion-icon {
-            transform: rotate(180deg);
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(189, 16, 224, 0.25);
         }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen">
+<body class="min-h-screen selection:bg-purple-600 selection:text-white">
 
-    <!-- Top Navbar -->
-    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30">
-        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
-            <!-- Brand -->
+    <!-- Top Executive Header -->
+    <header class="bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-30 shadow-lg shadow-black/20">
+        <div class="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+            <!-- Brand & Identity -->
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#4a154b] via-[#6c1d6d] to-[#bd10e0] flex items-center justify-center text-white shadow-lg shadow-purple-900/40 shrink-0">
                     <i class="fa-solid fa-wifi text-lg"></i>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold text-white tracking-wide">متابعة خطوط وي للأعمال والفروع</h1>
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <div class="flex items-center gap-2.5">
+                        <h1 class="text-lg font-bold text-white tracking-wide">منظومة متابعة خطوط وي (WE)</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span> متصل
                         </span>
                     </div>
-                    <p class="text-xs text-slate-400">استعلام ومراقبة جيجات الباقات الأساسية والإضافية لشركة WE</p>
+                    <p class="text-xs text-slate-400">استعلام ومراقبة جيجات الباقات، الأرصدة، ونقاط 4U لجميع الفروع والمشتركين</p>
                 </div>
             </div>
 
             <!-- Header Actions -->
             <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="تصدير كشف كامل بالخطوط Excel/CSV">
+                <button onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition" title="تصدير كشف كامل بالخطوط Excel/CSV">
                     <i class="fa-solid fa-file-excel text-emerald-400"></i>
                     <span class="hidden sm:inline">تصدير تقرير</span>
                 </button>
 
-                <button onclick="refreshAllLines()" id="btnRefreshAll" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                <button onclick="refreshAllLines()" id="btnRefreshAll" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition">
                     <i class="fa-solid fa-rotate text-purple-400" id="iconRefreshAll"></i>
                     <span>تحديث الكل</span>
                 </button>
 
-                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-600/30 transition transform active:scale-95">
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-600 hover:from-purple-600 hover:to-indigo-500 text-white shadow-md shadow-purple-900/30 transition transform active:scale-95">
                     <i class="fa-solid fa-plus"></i>
                     <span>إضافة خط جديد</span>
                 </button>
 
-                <button onclick="openSettingsModal()" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="الإعدادات والتيليجرام">
+                <button onclick="openSettingsModal()" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition" title="الإعدادات والتيليجرام">
                     <i class="fa-solid fa-gear text-sm"></i>
                 </button>
             </div>
@@ -117,66 +117,91 @@
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+    <main class="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
 
-        <!-- Top Statistics Cards -->
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-3.5" id="statsGrid">
-            <!-- Total Lines -->
-            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
-                <div class="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-lg shrink-0">
-                    <i class="fa-solid fa-phone-volume"></i>
+        <!-- Executive Metrics Ribbon (No separate chunky square cards!) -->
+        <section class="bg-gradient-to-r from-slate-900/90 via-slate-900/80 to-purple-950/30 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-0 lg:divide-x lg:divide-x-reverse lg:divide-slate-800/80">
+                <!-- 1. Total Lines -->
+                <div class="flex items-center gap-3.5 lg:px-4">
+                    <div class="w-11 h-11 rounded-2xl bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center text-lg shrink-0 shadow-inner">
+                        <i class="fa-solid fa-phone-volume"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">إجمالي الخطوط</p>
+                        <div class="flex items-baseline gap-2">
+                            <h3 class="text-2xl font-black text-white" id="statTotalLines">0</h3>
+                            <span class="text-[11px] text-emerald-400 font-bold" id="statActiveLines">الكل متصل</span>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-xs font-medium text-slate-400">إجمالي الخطوط</p>
-                    <h3 class="text-2xl font-black text-white" id="statTotalLines">0</h3>
-                    <p class="text-[11px] text-emerald-400 mt-0.5" id="statActiveLines">الكل نشط</p>
-                </div>
-            </div>
 
-            <!-- Remaining Quota -->
-            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
-                <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg shrink-0">
-                    <i class="fa-solid fa-database"></i>
+                <!-- 2. Remaining Quota -->
+                <div class="flex items-center gap-3.5 lg:px-4">
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-lg shrink-0 shadow-inner">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">المتبقي الكلي</p>
+                        <div class="flex items-baseline gap-1.5">
+                            <h3 class="text-2xl font-black text-emerald-400" id="statTotalRemain">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
+                        </div>
+                        <p class="text-[11px] text-slate-400" id="statTotalQuota">من إجمالي 0 GB</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-xs font-medium text-slate-400">إجمالي المتبقي الكلي</p>
-                    <h3 class="text-2xl font-black text-emerald-400" id="statTotalRemain">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5" id="statTotalQuota">من إجمالي 0 GB</p>
-                </div>
-            </div>
 
-            <!-- Used Quota -->
-            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
-                <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-lg shrink-0">
-                    <i class="fa-solid fa-chart-line"></i>
+                <!-- 3. Used Quota -->
+                <div class="flex items-center gap-3.5 lg:px-4">
+                    <div class="w-11 h-11 rounded-2xl bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center justify-center text-lg shrink-0 shadow-inner">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">إجمالي المستهلك</p>
+                        <div class="flex items-baseline gap-1.5">
+                            <h3 class="text-2xl font-black text-blue-400" id="statTotalUsed">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
+                        </div>
+                        <p class="text-[11px] text-slate-400">عبر جميع الخطوط</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-xs font-medium text-slate-400">إجمالي المستهلك</p>
-                    <h3 class="text-2xl font-black text-blue-400" id="statTotalUsed">0 <span class="text-xs font-semibold text-slate-400">GB</span></h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">عبر جميع الخطوط</p>
-                </div>
-            </div>
 
-            <!-- Critical Lines -->
-            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3.5 relative overflow-hidden">
-                <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+                <!-- 4. Critical / Renewal -->
+                <div class="flex items-center gap-3.5 lg:px-4">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg shrink-0 shadow-inner">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">تجديد وشيك / حرج</p>
+                        <div class="flex items-baseline gap-2">
+                            <h3 class="text-2xl font-black text-amber-400" id="statCriticalLines">0</h3>
+                            <span class="text-[11px] text-slate-400" id="statNearestRenewal">أقرب تجديد: -</span>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-xs font-medium text-slate-400">تجديد وشيك / حرج</p>
-                    <h3 class="text-2xl font-black text-amber-400" id="statCriticalLines">0</h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5" id="statNearestRenewal">أقرب تجديد: -</p>
+
+                <!-- 5. Total Balance & 4U Points -->
+                <div class="flex items-center gap-3.5 lg:px-4 col-span-2 lg:col-span-1">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-lg shrink-0 shadow-inner">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">الأرصدة ونقاط 4U</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-xs font-bold text-amber-400" id="statTotalBalance">0.00 ج.م</span>
+                            <span class="text-slate-600">|</span>
+                            <span class="text-xs font-bold text-purple-300" id="statTotalPoints">0 نقطة</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Search, Filter & View Controls (Designed for 50+ lines) -->
-        <section class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800/80 space-y-3">
+        <!-- Search, Filter & View Controls -->
+        <section class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800/80 space-y-3 shadow-md backdrop-blur-md">
             <div class="flex flex-col md:flex-row items-center justify-between gap-3">
                 <!-- Search Box -->
                 <div class="relative w-full md:w-96">
                     <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
-                    <input type="text" id="searchInput" oninput="applyFiltersAndSort()" placeholder="بحث برقم التليفون، اسم العميل (صاحب الخط)، أو المسمى..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                    <input type="text" id="searchInput" oninput="applyFiltersAndSort()" placeholder="بحث برقم الخط، اسم المشترك، أو المسمى..." class="w-full bg-slate-950/80 border border-slate-800 rounded-xl pr-9 pl-3.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
                 </div>
 
                 <!-- Sort & View Controls -->
@@ -193,15 +218,15 @@
                         </select>
                     </div>
 
-                    <!-- View Switcher -->
+                    <!-- View Switcher (Table is default, List is alternative) -->
                     <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-                        <button onclick="setViewMode('cards')" id="btnViewCards" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1">
-                            <i class="fa-solid fa-table-cells-large"></i>
-                            <span class="hidden sm:inline">بطاقات</span>
-                        </button>
-                        <button onclick="setViewMode('table')" id="btnViewTable" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                        <button onclick="setViewMode('table')" id="btnViewTable" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-gradient-to-r from-purple-700 to-indigo-600 text-white shadow-sm flex items-center gap-1.5">
                             <i class="fa-solid fa-table-list"></i>
-                            <span class="hidden sm:inline">جدول</span>
+                            <span>جدول تنفيذي</span>
+                        </button>
+                        <button onclick="setViewMode('cards')" id="btnViewCards" class="px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-bars-staggered"></i>
+                            <span>قائمة انسيابية</span>
                         </button>
                     </div>
                 </div>
@@ -209,61 +234,68 @@
 
             <!-- Quick Filter Tabs -->
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs border-t border-slate-800/60 pt-2.5">
-                <button onclick="setFilterTab('all')" id="tab_all" class="px-3 py-1 rounded-lg font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/30 transition whitespace-nowrap">
+                <button onclick="setFilterTab('all')" id="tab_all" class="px-3 py-1 rounded-lg font-bold bg-purple-600/25 text-purple-300 border border-purple-500/40 transition whitespace-nowrap">
                     الكل (<span id="count_all">0</span>)
                 </button>
-                <button onclick="setFilterTab('critical')" id="tab_critical" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                <button onclick="setFilterTab('critical')" id="tab_critical" class="px-3 py-1 rounded-lg font-medium bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
                     🚨 باقة منخفضة / حرجة (<span id="count_critical">0</span>)
                 </button>
-                <button onclick="setFilterTab('expiring')" id="tab_expiring" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                <button onclick="setFilterTab('expiring')" id="tab_expiring" class="px-3 py-1 rounded-lg font-medium bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
                     ⏳ تجديد وشيك (&le; 3 أيام) (<span id="count_expiring">0</span>)
                 </button>
-                <button onclick="setFilterTab('with_topups')" id="tab_with_topups" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                <button onclick="setFilterTab('with_topups')" id="tab_with_topups" class="px-3 py-1 rounded-lg font-medium bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
                     🚀 باقات إضافية (<span id="count_with_topups">0</span>)
                 </button>
-                <button onclick="setFilterTab('with_balance')" id="tab_with_balance" class="px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
+                <button onclick="setFilterTab('with_balance')" id="tab_with_balance" class="px-3 py-1 rounded-lg font-medium bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap">
                     💰 به رصيد مالي (<span id="count_with_balance">0</span>)
                 </button>
             </div>
         </section>
 
-        <!-- View 1: Compact Smart Cards Grid -->
-        <section id="linesContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <!-- Loading placeholder -->
-            <div class="col-span-full py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
-                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-500"></i>
-                <p class="text-sm font-medium">جاري تحميل الخطوط والبيانات...</p>
-            </div>
-        </section>
-
-        <!-- View 2: High-Density Table View (Perfect for 50+ lines) -->
-        <section id="tableViewContainer" class="hidden bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+        <!-- View 1 (PRIMARY / DEFAULT): High-Density Sleek Executive Table -->
+        <section id="tableViewContainer" class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
             <div class="overflow-x-auto">
                 <table class="w-full text-right text-xs">
-                    <thead class="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-bold">
+                    <thead class="bg-slate-950/90 text-slate-400 border-b border-slate-800 font-bold uppercase tracking-wider">
                         <tr>
-                            <th class="p-3">#</th>
-                            <th class="p-3">الخط والمسمى</th>
-                            <th class="p-3">صاحب الخط (العميل)</th>
-                            <th class="p-3">الرصيد / النقاط</th>
-                            <th class="p-3">المتبقي الكلي</th>
-                            <th class="p-3">الباقة الأساسية وموعدها</th>
-                            <th class="p-3">الباقات الإضافية</th>
-                            <th class="p-3 text-center">الحالة</th>
-                            <th class="p-3 text-center">الإجراءات</th>
+                            <th class="py-3 px-3.5 text-center w-10">#</th>
+                            <th class="py-3 px-4">المشترك والخط</th>
+                            <th class="py-3 px-4 min-w-[200px]">الاستهلاك والمتبقي الكلي</th>
+                            <th class="py-3 px-4">موعد التجديد</th>
+                            <th class="py-3 px-4">الرصيد والنقاط (WE)</th>
+                            <th class="py-3 px-4">الباقة والتفاصيل</th>
+                            <th class="py-3 px-4 text-center">الحالة</th>
+                            <th class="py-3 px-4 text-center w-28">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-slate-800/60">
                         <!-- Populated by JS -->
+                        <tr>
+                            <td colspan="8" class="py-16 text-center text-slate-500">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-500"></i>
+                                    <p class="text-sm font-medium">جاري فحص وتحميل خطوط المشتركين...</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- View 2 (ALTERNATIVE): Sleek Horizontal Rows List (NOT square cards) -->
+        <section id="linesContainer" class="hidden space-y-3">
+            <!-- Loading placeholder -->
+            <div class="py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-500"></i>
+                <p class="text-sm font-medium">جاري تحميل الخطوط والبيانات...</p>
             </div>
         </section>
 
     </main>
 
     <!-- Modal: Add New Line -->
-    <div id="modalAddLine" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="modalAddLine" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
             <button onclick="closeAddModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
@@ -283,7 +315,7 @@
                     <label class="block text-xs font-semibold text-slate-300 mb-1">رقم التليفون الأرضي (مع كود المحافظة):</label>
                     <div class="relative">
                         <i class="fa-solid fa-phone absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
-                        <input type="text" id="addLandline" required placeholder="مثال: 0233445566 أو 034455667" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        <input type="text" id="addLandline" required placeholder="مثال: 0863880764 أو 0225514068" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
                     </div>
                 </div>
 
@@ -302,7 +334,7 @@
                     <label class="block text-xs font-semibold text-slate-300 mb-1">اسم صاحب الخط (العميل / الموظف):</label>
                     <div class="relative">
                         <i class="fa-solid fa-user absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
-                        <input type="text" id="addCustomerName" placeholder="مثال: م. هيثم عبد القادر، أحمد إبراهيم" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                        <input type="text" id="addCustomerName" placeholder="مثال: عبدالحميد محمود مرسى" class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
                     </div>
                     <span class="text-[10px] text-slate-500 mt-0.5 block">إذا تُرِك فارغاً، سيتم التعرف عليه تلقائياً من خوادم وي.</span>
                 </div>
@@ -326,7 +358,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">مسمى الخط أو الفرع (اختياري):</label>
-                    <input type="text" id="addLabel" placeholder="مثال: فرع المعادي، راوتر السنترال" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    <input type="text" id="addLabel" placeholder="مثال: فرع المنيا، راوتر الإدارة" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500">
                 </div>
 
                 <div>
@@ -346,7 +378,7 @@
     </div>
 
     <!-- Modal: Edit Line Info -->
-    <div id="modalEditLine" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="modalEditLine" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
             <button onclick="closeEditModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
@@ -357,7 +389,7 @@
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-white">تعديل بيانات الخط</h3>
-                    <p class="text-xs text-slate-400" id="editModalSubTitle">تحديث اسم العميل ومسمى الخط</p>
+                    <p class="text-xs text-slate-400" id="editModalSubTitle">تحديث اسم المشترك، الرصيد، والنقاط</p>
                 </div>
             </div>
 
@@ -365,7 +397,7 @@
                 <input type="hidden" id="editLineId">
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">اسم صاحب الخط (العميل):</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">اسم صاحب الخط (المشترك):</label>
                     <div class="relative">
                         <i class="fa-solid fa-user absolute right-3.5 top-2.5 text-slate-500 text-xs"></i>
                         <input type="text" id="editCustomerName" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500">
@@ -421,7 +453,7 @@
     </div>
 
     <!-- Modal: Settings & Telegram -->
-    <div id="modalSettings" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="modalSettings" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSettingsModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
@@ -514,7 +546,7 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-6 z-50 flex items-center gap-3 bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl px-4 py-3 transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none">
+    <div id="toast" class="fixed bottom-6 left-6 z-50 flex items-center gap-3 bg-slate-900/95 border border-slate-800 shadow-2xl rounded-2xl px-4 py-3 transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none backdrop-blur-md">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
         <span id="toastMessage" class="text-xs font-medium text-slate-200"></span>
     </div>
@@ -523,7 +555,7 @@
     <script>
         let allLines = [];
         let currentFilterTab = 'all';
-        let currentViewMode = 'cards';
+        let currentViewMode = 'table'; // Default view is Executive Table (No square cards!)
 
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
@@ -555,7 +587,7 @@
                 if (data.success && data.stats) {
                     const s = data.stats;
                     document.getElementById('statTotalLines').textContent = s.total_lines;
-                    document.getElementById('statActiveLines').textContent = `${s.active_lines} خط متصل ونشط`;
+                    document.getElementById('statActiveLines').textContent = `${s.active_lines} خط متصل`;
                     document.getElementById('statTotalRemain').innerHTML = `${s.total_remain_gb} <span class="text-xs font-semibold text-slate-400">GB</span>`;
                     document.getElementById('statTotalQuota').textContent = `من إجمالي ${s.total_quota_gb} GB`;
                     document.getElementById('statTotalUsed').innerHTML = `${s.total_used_gb} <span class="text-xs font-semibold text-slate-400">GB</span>`;
@@ -569,21 +601,21 @@
 
         function setViewMode(mode) {
             currentViewMode = mode;
-            const btnCards = document.getElementById('btnViewCards');
             const btnTable = document.getElementById('btnViewTable');
-            const cardsContainer = document.getElementById('linesContainer');
+            const btnCards = document.getElementById('btnViewCards');
             const tableContainer = document.getElementById('tableViewContainer');
+            const cardsContainer = document.getElementById('linesContainer');
 
-            if (mode === 'cards') {
-                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1";
-                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1";
+            if (mode === 'table') {
+                btnTable.className = "px-3 py-1 rounded-lg text-xs font-bold transition bg-gradient-to-r from-purple-700 to-indigo-600 text-white shadow-sm flex items-center gap-1.5";
+                btnCards.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5";
+                tableContainer.classList.remove('hidden');
+                cardsContainer.classList.add('hidden');
+            } else {
+                btnCards.className = "px-3 py-1 rounded-lg text-xs font-bold transition bg-gradient-to-r from-purple-700 to-indigo-600 text-white shadow-sm flex items-center gap-1.5";
+                btnTable.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5";
                 cardsContainer.classList.remove('hidden');
                 tableContainer.classList.add('hidden');
-            } else {
-                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-purple-600 text-white shadow-sm flex items-center gap-1";
-                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1";
-                cardsContainer.classList.add('hidden');
-                tableContainer.classList.remove('hidden');
             }
             applyFiltersAndSort();
         }
@@ -595,9 +627,9 @@
                 const el = document.getElementById(`tab_${t}`);
                 if (!el) return;
                 if (t === tab) {
-                    el.className = "px-3 py-1 rounded-lg font-semibold bg-purple-600/25 text-purple-300 border border-purple-500/40 transition whitespace-nowrap shadow-sm";
+                    el.className = "px-3 py-1 rounded-lg font-bold bg-purple-600/25 text-purple-300 border border-purple-500/40 transition whitespace-nowrap shadow-sm";
                 } else {
-                    el.className = "px-3 py-1 rounded-lg font-semibold bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap";
+                    el.className = "px-3 py-1 rounded-lg font-medium bg-slate-950 text-slate-400 hover:text-white border border-slate-800 transition whitespace-nowrap";
                 }
             });
             applyFiltersAndSort();
@@ -608,6 +640,8 @@
             let expiringCount = 0;
             let topupCount = 0;
             let balanceCount = 0;
+            let totalBal = 0;
+            let totalPts = 0;
 
             allLines.forEach(l => {
                 const raw = l.last_data;
@@ -616,11 +650,15 @@
                 const daysLeft = Number(q.days_left ?? q.days_remaining ?? 999);
                 const topups = (q.topup_bundles || (q.bundles && q.bundles.filter(b => !(b.type || '').toLowerCase().includes('main'))) || []);
                 const balance = Number(l.balance ?? q.balance ?? 0);
+                const points = parseInt(l.points ?? q.points ?? 0, 10);
 
                 if (q.status_tag === 'critical' || remainPct <= 15) criticalCount++;
                 if (daysLeft <= 3) expiringCount++;
                 if (topups.length > 0) topupCount++;
                 if (balance > 0) balanceCount++;
+
+                if (!isNaN(balance) && balance > 0) totalBal += balance;
+                if (!isNaN(points) && points > 0) totalPts += points;
             });
 
             document.getElementById('count_all').textContent = allLines.length;
@@ -628,6 +666,9 @@
             document.getElementById('count_expiring').textContent = expiringCount;
             document.getElementById('count_with_topups').textContent = topupCount;
             document.getElementById('count_with_balance').textContent = balanceCount;
+
+            document.getElementById('statTotalBalance').textContent = `${totalBal.toFixed(2)} ج.م`;
+            document.getElementById('statTotalPoints').textContent = `${totalPts.toLocaleString('en-US')} نقطة`;
         }
 
         function applyFiltersAndSort() {
@@ -683,28 +724,29 @@
                 return 0;
             });
 
-            if (currentViewMode === 'cards') {
-                renderCards(result);
-            } else {
+            if (currentViewMode === 'table') {
                 renderTable(result);
+            } else {
+                renderHorizontalList(result);
             }
         }
 
-        // Render Compact Cards (Optimized for 50+ lines)
-        function renderCards(lines) {
-            const container = document.getElementById('linesContainer');
+        // Render High-Density Executive Table View
+        function renderTable(lines) {
+            const tbody = document.getElementById('tableBody');
             if (!lines || lines.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 flex flex-col items-center justify-center gap-3">
-                        <i class="fa-solid fa-phone-slash text-2xl text-purple-400"></i>
-                        <h4 class="text-sm font-bold text-slate-300">لا توجد خطوط تطابق البحث أو الفلتر المختار</h4>
-                        <p class="text-xs text-slate-500">جرب تغيير كلمات البحث أو اختر تبويب "الكل".</p>
-                    </div>
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="p-12 text-center text-slate-500">
+                            <i class="fa-solid fa-magnifying-glass text-2xl text-purple-400/60 mb-2 block"></i>
+                            <span class="text-sm font-semibold text-slate-400">لا توجد خطوط تطابق الفلتر أو البحث.</span>
+                        </td>
+                    </tr>
                 `;
                 return;
             }
 
-            container.innerHTML = lines.map(line => {
+            tbody.innerHTML = lines.map((line, idx) => {
                 const raw = line.last_data;
                 const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
                 const hasData = Boolean(raw && raw.success && (q.total_gb !== undefined || q.remain_gb !== undefined));
@@ -716,12 +758,11 @@
                 const remainPct = Number(q.remain_percent ?? q.remain_percentage ?? (totalGb > 0 ? Math.round((remainGb / totalGb) * 100) : 0));
                 const expireDate = q.expire_date || q.renewal_date || 'غير محدد';
                 const daysLeft = Number(q.days_left ?? q.days_remaining ?? 0);
-                const hoursLeft = Number(q.hours_left ?? (daysLeft * 24));
                 const offerName = q.offer_name || 'باقة وي إنترنت';
                 const customerName = line.customer_name || q.customer_name || 'مشترك وي';
                 const statusTag = q.status_tag || q.status || (remainPct <= 10 || daysLeft <= 2 ? 'critical' : remainPct <= 25 || daysLeft <= 5 ? 'warning' : 'good');
                 const statusText = q.status_text || (statusTag === 'critical' ? 'حرج' : statusTag === 'warning' ? 'تحذير' : 'ممتاز');
-                const lastUpdated = q.last_updated || line.last_checked || 'غير محدد';
+
                 const rawBal = (line.balance !== undefined && line.balance !== null) ? line.balance : q.balance;
                 const rawPts = (line.points !== undefined && line.points !== null) ? line.points : q.points;
                 const hasBalance = rawBal !== undefined && rawBal !== null && !isNaN(rawBal) && rawBal !== '';
@@ -742,233 +783,232 @@
                     topupBundles = bundlesList.filter(b => b !== mainBundle && Number(b.current_amount ?? 0) > 0);
                 }
 
-                // Calculate active capacity excluding expired extra quotas
                 const mbCapacity = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
                 const topupCapacity = topupBundles.reduce((acc, b) => acc + Number(b.initial_amount || 0), 0);
                 const activeTotalGb = (mbCapacity + topupCapacity) > 0 ? (mbCapacity + topupCapacity) : totalGb;
                 const activeRemainPct = activeTotalGb > 0 ? Math.min(100, Math.round((remainGb / activeTotalGb) * 100)) : remainPct;
 
                 const mbName = mainBundle ? (mainBundle.name || 'الباقة الأساسية') : offerName;
-                const mbInitial = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
-                const mbRemain = mainBundle ? Number(mainBundle.current_amount ?? remainGb) : remainGb;
-                const mbDays = Number(mainBundle?.days_left ?? mainBundle?.remaining_days ?? mainBundle?.days_remaining ?? daysLeft);
-                let mbExpire = (mainBundle && mainBundle.expire_date && mainBundle.expire_date !== 'غير محدد') ? mainBundle.expire_date : null;
-                if (!mbExpire) {
-                    if (mbDays > 0 && mbDays !== daysLeft) {
-                        const d = new Date();
-                        d.setDate(d.getDate() + mbDays);
-                        mbExpire = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 12:00 AM`;
-                    } else {
-                        mbExpire = expireDate;
-                    }
-                }
+                const mbDays = Number(mainBundle?.days_left ?? mainBundle?.remaining_days ?? daysLeft);
+                let mbExpire = (mainBundle && mainBundle.expire_date && mainBundle.expire_date !== 'غير محدد') ? mainBundle.expire_date : expireDate;
 
-                let badgeColor = 'bg-slate-700/50 text-slate-300 border-slate-600';
-                let progressColor = 'bg-emerald-500';
+                let badgeColor = statusTag === 'critical' 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
+                    : (statusTag === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30');
 
-                if (statusTag === 'critical') {
-                    badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/25';
-                    progressColor = 'bg-rose-500';
-                } else if (statusTag === 'warning') {
-                    badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/25';
-                    progressColor = 'bg-amber-500';
-                } else {
-                    badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
-                    progressColor = 'bg-emerald-500';
-                }
+                let progressColor = statusTag === 'critical' ? 'bg-rose-500' : (statusTag === 'warning' ? 'bg-amber-500' : 'bg-emerald-500');
 
                 const topupRemainTotal = topupBundles.reduce((acc, b) => acc + Number(b.current_amount || 0), 0).toFixed(1);
 
-                return `
-                    <div class="bg-slate-900/80 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 shadow-md transition flex flex-col justify-between relative group" id="card-${line.id}">
-                        <div>
-                            <!-- Header: Landline, Label, Owner Name & Actions -->
-                            <div class="flex items-start justify-between gap-2.5 mb-3">
-                                <div>
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-800 text-purple-300 border border-slate-700/80 tracking-wide">${line.landline}</span>
-                                        <h3 class="text-sm font-bold text-white group-hover:text-purple-300 transition truncate max-w-[170px]" title="${escapeHtml(line.label)}">${escapeHtml(line.label)}</h3>
-                                    </div>
-                                    <!-- Prominent Owner Name -->
-                                    <div class="flex items-center gap-1.5 mt-1 text-xs">
-                                        <i class="fa-solid fa-user-check text-purple-400 text-[11px]"></i>
-                                        <span class="font-bold text-slate-200 truncate max-w-[220px]" title="${escapeHtml(customerName)}">${escapeHtml(customerName)}</span>
-                                    </div>
-                                </div>
+                // Avatar initial letter
+                const avatarLetter = customerName.trim().charAt(0) || 'و';
 
-                                <div class="flex items-center gap-1 shrink-0">
-                                    <button onclick="refreshSingleLine('${line.id}', this)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs transition" title="فحص وتحديث">
-                                        <i class="fa-solid fa-rotate"></i>
-                                    </button>
-                                    <button onclick="openEditModal('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-900/50 text-slate-400 hover:text-indigo-300 flex items-center justify-center text-xs transition" title="تعديل اسم صاحب الخط والمسمى">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button onclick="deleteLine('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition" title="حذف الخط">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
+                return `
+                    <tr class="hover:bg-slate-800/40 transition duration-150 group">
+                        <!-- # Index -->
+                        <td class="py-3 px-3.5 text-center font-mono text-slate-500 font-semibold">
+                            ${String(idx + 1).padStart(2, '0')}
+                        </td>
+
+                        <!-- Subscriber & Landline -->
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-800/80 to-indigo-600/80 flex items-center justify-center font-bold text-white text-sm shrink-0 border border-purple-500/30 shadow-sm">
+                                    ${escapeHtml(avatarLetter)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-white text-sm flex items-center gap-1.5 hover:text-purple-300 transition">
+                                        <span>${escapeHtml(customerName)}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="font-mono text-xs font-bold text-purple-300 tracking-wide">${line.landline}</span>
+                                        <button onclick="copyToClipboard('${line.landline}', 'تم نسخ رقم الخط: ${line.landline}')" class="text-slate-500 hover:text-purple-400 text-[11px] transition" title="نسخ الرقم">
+                                            <i class="fa-regular fa-copy"></i>
+                                        </button>
+                                        ${line.label ? `<span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700/80 truncate max-w-[120px]" title="${escapeHtml(line.label)}">${escapeHtml(line.label)}</span>` : ''}
+                                    </div>
                                 </div>
                             </div>
+                        </td>
 
+                        <!-- Quota Progress & Remaining -->
+                        <td class="py-3 px-4">
                             ${hasData ? `
-                                <!-- Top Status & Balance/Points Row -->
-                                <div class="flex items-center justify-between gap-1.5 text-[11px] mb-2.5 bg-slate-950/60 px-2.5 py-1.5 rounded-xl border border-slate-800/80">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
-                                        ${statusText}
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        ${hasBalance ? `
-                                            <span onclick="openEditModal('${line.id}')" class="text-amber-300 font-bold font-mono cursor-pointer hover:underline flex items-center" title="انقر لتعديل الرصيد">
-                                                <i class="fa-solid fa-coins text-amber-400 ml-1"></i>${balanceVal} ج.م
-                                            </span>
-                                        ` : `
-                                            <button onclick="openEditModal('${line.id}')" class="text-amber-400 text-[10px] bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/25 transition flex items-center gap-1" title="انقر لإدخال الرصيد">
-                                                <i class="fa-solid fa-coins text-[10px]"></i>+ تعيين الرصيد
-                                            </button>
-                                        `}
-                                        ${hasPoints ? `
-                                            <span onclick="openEditModal('${line.id}')" class="text-purple-300 font-bold font-mono cursor-pointer hover:underline flex items-center" title="انقر لتعديل النقاط">
-                                                <i class="fa-solid fa-gift text-purple-400 ml-1"></i>${pointsVal} نقطة
-                                            </span>
-                                        ` : `
-                                            <button onclick="openEditModal('${line.id}')" class="text-purple-400 text-[10px] bg-purple-500/10 hover:bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/25 transition flex items-center gap-1" title="انقر لإدخال النقاط">
-                                                <i class="fa-solid fa-gift text-[10px]"></i>+ تعيين النقاط
-                                            </button>
-                                        `}
+                                <div>
+                                    <div class="flex items-baseline justify-between gap-2 mb-1">
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="font-black text-emerald-400 font-mono text-sm">${remainGb}</span>
+                                            <span class="text-[11px] font-semibold text-slate-400">GB</span>
+                                            <span class="text-[10px] font-bold text-slate-400">(${activeRemainPct}%)</span>
+                                        </div>
+                                        <span class="text-[11px] text-slate-400 font-mono">من ${activeTotalGb} GB</span>
                                     </div>
-                                </div>
-
-                                <!-- Overall Progress & Quota -->
-                                <div class="mb-3 space-y-1.5">
-                                    <div class="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-slate-800 overflow-hidden">
+                                    <div class="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-slate-800/80 overflow-hidden">
                                         <div class="h-full rounded-full transition-all duration-500 ${progressColor}" style="width: ${activeRemainPct}%"></div>
                                     </div>
-                                    <div class="flex items-center justify-between text-xs font-semibold">
-                                        <div>
-                                            <span class="text-slate-400 text-[11px]">المتبقي الكلي:</span>
-                                            <span class="text-emerald-400 font-bold font-mono text-sm mr-1">${remainGb} GB</span>
-                                            <span class="text-slate-500 text-[10px]">(${activeRemainPct}%)</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-slate-400 text-[11px]">من:</span>
-                                            <span class="text-slate-300 font-mono text-xs mr-1">${activeTotalGb} GB</span>
-                                        </div>
+                                    <div class="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                                        <span>المستهلك: <strong class="text-slate-400 font-mono">${usedGb} GB</strong></span>
+                                        ${topupBundles.length > 0 ? `<span class="text-sky-400 font-semibold">باقة إضافية نشطة</span>` : ''}
                                     </div>
-                                </div>
-
-                                <!-- Main Quota Capsule -->
-                                <div class="bg-slate-950/80 border border-purple-500/20 rounded-xl p-2.5 space-y-1 text-xs">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-purple-300 flex items-center gap-1.5 text-[11px]">
-                                            <i class="fa-solid fa-cube text-purple-400"></i>
-                                            ${escapeHtml(mbName)}
-                                        </span>
-                                        <span class="text-[10px] text-slate-400 font-mono">${mbRemain} / ${mbInitial} GB</span>
-                                    </div>
-                                    <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-900">
-                                        <span>تجديد: <strong class="text-slate-200">${mbExpire}</strong></span>
-                                        <span class="font-bold ${mbDays <= 3 ? 'text-amber-400' : 'text-purple-300'}">⏳ ${mbDays} يوم</span>
-                                    </div>
-                                </div>
-
-                                <!-- Collapsible Topup Bundles Accordion (Prevents clutter for 50+ lines) -->
-                                <div class="mt-2.5">
-                                    ${topupBundles.length > 0 ? `
-                                        <details class="group/acc bg-slate-950/70 border border-sky-500/25 rounded-xl transition overflow-hidden">
-                                            <summary class="p-2 cursor-pointer select-none flex items-center justify-between text-xs font-bold text-sky-300 hover:bg-sky-500/5 transition">
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="fa-solid fa-layer-group text-sky-400"></i>
-                                                    <span>الباقات الإضافية (${topupBundles.length})</span>
-                                                    <span class="text-[10px] font-mono font-normal text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 mr-1">${topupRemainTotal} GB</span>
-                                                </div>
-                                                <i class="fa-solid fa-chevron-down text-[10px] text-sky-400 accordion-icon transition-transform duration-200"></i>
-                                            </summary>
-
-                                            <div class="p-2.5 pt-1 space-y-2 border-t border-slate-900/80">
-                                                ${topupBundles.map((tb, idx) => {
-                                                    const tbInitial = Number(tb.initial_amount || 0);
-                                                    const tbRemain = Number(tb.current_amount || 0);
-                                                    const tbPct = tbInitial > 0 ? Math.round((tbRemain / tbInitial) * 100) : 0;
-                                                    let tbDays = Number(tb.days_left ?? tb.remaining_days ?? tb.days_remaining ?? 0);
-                                                    if (tbDays <= 0 && daysLeft > 0) {
-                                                        tbDays = daysLeft;
-                                                    }
-                                                    let tbExpire = (tb.expire_date && tb.expire_date !== 'غير محدد') ? tb.expire_date : null;
-                                                    if (!tbExpire) {
-                                                        if (expireDate && expireDate !== 'غير محدد') {
-                                                            tbExpire = expireDate;
-                                                        } else if (tbDays > 0) {
-                                                            const d = new Date();
-                                                            d.setDate(d.getDate() + tbDays);
-                                                            tbExpire = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 12:00 AM`;
-                                                        } else {
-                                                            tbExpire = 'غير محدد';
-                                                        }
-                                                    }
-                                                    return `
-                                                        <div class="bg-slate-900/90 border border-sky-500/20 rounded-lg p-2 space-y-1 text-[11px]">
-                                                            <div class="flex items-center justify-between">
-                                                                <span class="font-bold text-sky-200">${escapeHtml(tb.name)}</span>
-                                                                <span class="font-mono text-sky-300 font-bold">${tbRemain} / ${tbInitial} GB</span>
-                                                            </div>
-                                                            <div class="w-full bg-slate-950 rounded-full h-1.5 p-0.5 overflow-hidden">
-                                                                <div class="h-full rounded-full bg-sky-500" style="width: ${tbPct}%"></div>
-                                                            </div>
-                                                            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                                                                <span>انتهاء: <strong class="text-slate-300">${tbExpire}</strong></span>
-                                                                <span class="font-bold ${tbDays <= 3 ? 'text-amber-400' : 'text-sky-300'}">⏳ متبقي ${tbDays} يوم</span>
-                                                            </div>
-                                                        </div>
-                                                    `;
-                                                }).join('')}
-                                            </div>
-                                        </details>
-                                    ` : `
-                                        <div class="py-1 px-2.5 rounded-lg bg-slate-950/40 border border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between">
-                                            <span><i class="fa-solid fa-circle-info ml-1 text-slate-600"></i>لا توجد باقات إضافية</span>
-                                            <span class="text-slate-600 font-mono">0 باقة</span>
-                                        </div>
-                                    `}
                                 </div>
                             ` : `
-                                <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center my-3 space-y-1.5">
-                                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
-                                    <p class="text-xs text-rose-400 font-medium">${error ? escapeHtml(error) : 'لم يتم جلب البيانات بعد'}</p>
-                                    <button onclick="refreshSingleLine('${line.id}', this)" class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold border border-slate-700">
-                                        فحص الآن
-                                    </button>
+                                <div class="text-rose-400 text-xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <span>${error ? escapeHtml(error) : 'لم يتم الفحص بعد'}</span>
                                 </div>
                             `}
-                        </div>
+                        </td>
 
-                        <!-- Card Footer -->
-                        <div class="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500">
-                            <span><i class="fa-solid fa-clock-rotate-left ml-1"></i>${hasData ? lastUpdated : (line.last_checked || 'غير محدد')}</span>
-                            ${line.notes ? `<span class="truncate max-w-[130px]" title="${escapeHtml(line.notes)}">📝 ${escapeHtml(line.notes)}</span>` : ''}
-                        </div>
-                    </div>
+                        <!-- Renewal Date & Countdown -->
+                        <td class="py-3 px-4">
+                            ${hasData ? `
+                                <div>
+                                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${mbDays <= 3 ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-purple-500/10 text-purple-300 border border-purple-500/20'}">
+                                        <i class="fa-regular fa-clock text-[10px]"></i>
+                                        <span>متبقي ${mbDays} يوم</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-1 font-mono">${mbExpire}</div>
+                                </div>
+                            ` : `<span class="text-slate-600 font-mono">-</span>`}
+                        </td>
+
+                        <!-- Balance & 4U Points -->
+                        <td class="py-3 px-4 font-mono">
+                            <div class="space-y-1">
+                                ${hasBalance ? `
+                                    <div onclick="openEditModal('${line.id}')" class="text-amber-300 font-bold cursor-pointer hover:underline text-xs flex items-center gap-1.5" title="انقر لتعديل الرصيد">
+                                        <i class="fa-solid fa-coins text-amber-400 text-[11px]"></i>
+                                        <span>${balanceVal} ج.م</span>
+                                    </div>
+                                ` : `
+                                    <button onclick="openEditModal('${line.id}')" class="text-amber-400 text-[10px] bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/25 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus text-[9px]"></i> رصيد
+                                    </button>
+                                `}
+
+                                ${hasPoints ? `
+                                    <div onclick="openEditModal('${line.id}')" class="text-purple-300 font-bold cursor-pointer hover:underline text-xs flex items-center gap-1.5" title="انقر لتعديل النقاط">
+                                        <i class="fa-solid fa-gift text-purple-400 text-[11px]"></i>
+                                        <span>${pointsVal} نقطة</span>
+                                    </div>
+                                ` : `
+                                    <button onclick="openEditModal('${line.id}')" class="text-purple-400 text-[10px] bg-purple-500/10 hover:bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/25 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus text-[9px]"></i> نقاط 4U
+                                    </button>
+                                `}
+                            </div>
+                        </td>
+
+                        <!-- Bundles & Details -->
+                        <td class="py-3 px-4">
+                            <div>
+                                <div class="font-bold text-slate-200 text-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-cube text-purple-400 text-[10px]"></i>
+                                    <span class="truncate max-w-[150px]" title="${escapeHtml(mbName)}">${escapeHtml(mbName)}</span>
+                                </div>
+                                ${topupBundles.length > 0 ? `
+                                    <button onclick="toggleDetailsRow('${line.id}')" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 px-2 py-0.5 rounded-md border border-sky-500/25 transition">
+                                        <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                        <span>${topupBundles.length} باقة إضافية (${topupRemainTotal} GB)</span>
+                                        <i class="fa-solid fa-chevron-down text-[9px] mr-0.5"></i>
+                                    </button>
+                                ` : `
+                                    <span class="text-[11px] text-slate-500 block mt-0.5">لا توجد باقات إضافية</span>
+                                `}
+                            </div>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border ${badgeColor} inline-block whitespace-nowrap">
+                                ${statusText}
+                            </span>
+                        </td>
+
+                        <!-- Quick Actions -->
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="refreshSingleLine('${line.id}', this)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-purple-600/30 text-slate-300 hover:text-purple-300 border border-slate-700/80 flex items-center justify-center text-xs transition" title="فحص وتحديث الخط">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                                <button onclick="openEditModal('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 border border-slate-700/80 flex items-center justify-center text-xs transition" title="تعديل بيانات الخط">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteLine('${line.id}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 border border-slate-700/80 flex items-center justify-center text-xs transition" title="حذف الخط">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Expandable Drawer for Extra Bundles / Notes -->
+                    ${topupBundles.length > 0 ? `
+                        <tr id="details-row-${line.id}" class="hidden bg-slate-950/70 border-b border-slate-800/80">
+                            <td colspan="8" class="p-3.5 px-8">
+                                <div class="bg-slate-900/90 border border-sky-500/20 rounded-xl p-3 space-y-2">
+                                    <div class="text-xs font-bold text-sky-300 flex items-center gap-2">
+                                        <i class="fa-solid fa-layer-group text-sky-400"></i>
+                                        <span>تفاصيل الباقات الإضافية للخط (${line.landline} - ${escapeHtml(customerName)}):</span>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                        ${topupBundles.map(tb => {
+                                            const tbInitial = Number(tb.initial_amount || 0);
+                                            const tbRemain = Number(tb.current_amount || 0);
+                                            const tbPct = tbInitial > 0 ? Math.round((tbRemain / tbInitial) * 100) : 0;
+                                            return `
+                                                <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs space-y-1">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="font-bold text-slate-200">${escapeHtml(tb.name)}</span>
+                                                        <span class="font-mono text-sky-400 font-bold">${tbRemain} / ${tbInitial} GB</span>
+                                                    </div>
+                                                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                                                        <div class="h-full rounded-full bg-sky-500" style="width: ${tbPct}%"></div>
+                                                    </div>
+                                                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                                                        <span>تاريخ الانتهاء: <strong class="text-slate-300">${tb.expire_date || expireDate}</strong></span>
+                                                        <span class="text-sky-300 font-semibold">⏳ متبقي ${tb.days_left || daysLeft} يوم</span>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    ` : ''}
                 `;
             }).join('');
         }
 
-        // Render High-Density Table View (Ideal for 50+ lines)
-        function renderTable(lines) {
-            const tbody = document.getElementById('tableBody');
+        // Render Sleek Horizontal Rows List (Alternative to table - NO chunky square cards)
+        function renderHorizontalList(lines) {
+            const container = document.getElementById('linesContainer');
             if (!lines || lines.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-500">لا توجد خطوط تطابق الفلتر أو البحث.</td></tr>`;
+                container.innerHTML = `
+                    <div class="py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800 flex flex-col items-center justify-center gap-3">
+                        <i class="fa-solid fa-phone-slash text-2xl text-purple-400"></i>
+                        <h4 class="text-sm font-bold text-slate-300">لا توجد خطوط تطابق البحث أو الفلتر المختار</h4>
+                    </div>
+                `;
                 return;
             }
 
-            tbody.innerHTML = lines.map((line, idx) => {
+            container.innerHTML = lines.map((line, idx) => {
                 const raw = line.last_data;
                 const q = (raw && typeof raw === 'object' && raw.data) ? { ...raw, ...raw.data } : (raw || {});
                 const hasData = Boolean(raw && raw.success && (q.total_gb !== undefined || q.remain_gb !== undefined));
 
                 const totalGb = Number(q.total_gb ?? 0);
                 const remainGb = Number(q.remain_gb ?? 0);
-                const remainPct = Number(q.remain_percent ?? (totalGb > 0 ? Math.round((remainGb / totalGb) * 100) : 0));
+                const usedGb = Number(q.used_gb ?? 0);
+                const remainPct = Number(q.remain_percent ?? q.remain_percentage ?? (totalGb > 0 ? Math.round((remainGb / totalGb) * 100) : 0));
+                const expireDate = q.expire_date || q.renewal_date || 'غير محدد';
+                const daysLeft = Number(q.days_left ?? q.days_remaining ?? 0);
+                const offerName = q.offer_name || 'باقة وي إنترنت';
                 const customerName = line.customer_name || q.customer_name || 'مشترك وي';
-                const statusTag = q.status_tag || q.status || (remainPct <= 10 ? 'critical' : remainPct <= 25 ? 'warning' : 'good');
+                const statusTag = q.status_tag || q.status || (remainPct <= 10 || daysLeft <= 2 ? 'critical' : remainPct <= 25 || daysLeft <= 5 ? 'warning' : 'good');
                 const statusText = q.status_text || (statusTag === 'critical' ? 'حرج' : statusTag === 'warning' ? 'تحذير' : 'ممتاز');
+
                 const rawBal = (line.balance !== undefined && line.balance !== null) ? line.balance : q.balance;
                 const rawPts = (line.points !== undefined && line.points !== null) ? line.points : q.points;
                 const hasBalance = rawBal !== undefined && rawBal !== null && !isNaN(rawBal) && rawBal !== '';
@@ -981,95 +1021,102 @@
                 let topupBundles = (Array.isArray(q.topup_bundles) ? q.topup_bundles : (bundlesList.filter(b => b !== mainBundle)))
                     .filter(b => Number(b.current_amount || 0) > 0);
 
-                const mbRemain = mainBundle ? Number(mainBundle.current_amount ?? remainGb) : remainGb;
-                const mbInitial = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
-                const mbDays = mainBundle ? Number(mainBundle.days_left ?? 0) : 0;
-
                 const mbCapacity = mainBundle ? Number(mainBundle.initial_amount ?? totalGb) : totalGb;
                 const topupCapacity = topupBundles.reduce((acc, b) => acc + Number(b.initial_amount || 0), 0);
                 const activeTotalGb = (mbCapacity + topupCapacity) > 0 ? (mbCapacity + topupCapacity) : totalGb;
                 const activeRemainPct = activeTotalGb > 0 ? Math.min(100, Math.round((remainGb / activeTotalGb) * 100)) : remainPct;
 
-                let badgeColor = statusTag === 'critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : (statusTag === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30');
+                const avatarLetter = customerName.trim().charAt(0) || 'و';
+                const progressColor = statusTag === 'critical' ? 'bg-rose-500' : (statusTag === 'warning' ? 'bg-amber-500' : 'bg-emerald-500');
 
                 return `
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-3 font-mono text-slate-500">${idx + 1}</td>
-                        <td class="p-3">
-                            <span class="font-mono font-bold text-purple-300 text-xs">${line.landline}</span>
-                            <div class="text-[11px] text-slate-400 truncate max-w-[140px]">${escapeHtml(line.label)}</div>
-                        </td>
-                        <td class="p-3">
-                            <div class="font-bold text-white flex items-center gap-1.5">
-                                <i class="fa-solid fa-user text-purple-400 text-[10px]"></i>
-                                ${escapeHtml(customerName)}
+                    <div class="bg-slate-900/80 border border-slate-800/90 hover:border-purple-500/40 rounded-2xl p-4 shadow-md transition flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                        <!-- Left/Right RTL: User Info -->
+                        <div class="flex items-center gap-3.5 min-w-[280px]">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-800 to-indigo-600 flex items-center justify-center font-black text-white text-base shrink-0 border border-purple-500/30 shadow-md">
+                                ${escapeHtml(avatarLetter)}
                             </div>
-                        </td>
-                        <td class="p-3 font-mono">
-                            ${hasBalance ? `
-                                <div onclick="openEditModal('${line.id}')" class="text-amber-300 font-bold cursor-pointer hover:underline text-xs flex items-center gap-1" title="انقر لتعديل الرصيد">
-                                    <i class="fa-solid fa-coins text-[10px] text-amber-400"></i>${balanceVal} ج.م
+                            <div>
+                                <h3 class="text-base font-bold text-white hover:text-purple-300 transition">${escapeHtml(customerName)}</h3>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="font-mono text-xs font-bold text-purple-300 tracking-wide">${line.landline}</span>
+                                    <button onclick="copyToClipboard('${line.landline}')" class="text-slate-500 hover:text-purple-400 text-xs" title="نسخ الرقم">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    ${line.label ? `<span class="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700">${escapeHtml(line.label)}</span>` : ''}
                                 </div>
-                            ` : `
-                                <button onclick="openEditModal('${line.id}')" class="text-amber-400 text-[10px] bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/25 transition">
-                                    + رصيد
-                                </button>
-                            `}
-                            ${hasPoints ? `
-                                <div onclick="openEditModal('${line.id}')" class="text-[10px] text-purple-300 cursor-pointer hover:underline flex items-center gap-1 mt-0.5" title="انقر لتعديل النقاط">
-                                    <i class="fa-solid fa-gift text-[9px] text-purple-400"></i>${pointsVal} نقطة
-                                </div>
-                            ` : `
-                                <button onclick="openEditModal('${line.id}')" class="text-purple-400 text-[10px] bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/25 transition mt-1 block">
-                                    + نقاط
-                                </button>
-                            `}
-                        </td>
-                        <td class="p-3">
-                            ${hasData ? `
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold font-mono text-emerald-400 text-sm">${remainGb}</span>
-                                    <span class="text-[10px] text-slate-400 font-mono">/ ${activeTotalGb} GB (${activeRemainPct}%)</span>
-                                </div>
-                                <div class="w-28 bg-slate-950 rounded-full h-1.5 overflow-hidden mt-1">
-                                    <div class="h-full bg-emerald-500" style="width: ${activeRemainPct}%"></div>
-                                </div>
-                            ` : `<span class="text-rose-400">غير متاح</span>`}
-                        </td>
-                        <td class="p-3 text-[11px]">
-                            ${hasData ? `
-                                <div class="font-semibold text-slate-200">${mbRemain} / ${mbInitial} GB</div>
-                                <div class="text-purple-300 text-[10px]">⏳ متبقي ${mbDays} يوم</div>
-                            ` : '-'}
-                        </td>
-                        <td class="p-3 text-[11px]">
-                            ${topupBundles.length > 0 ? `
-                                <span class="px-2 py-0.5 rounded-md font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">
-                                    ${topupBundles.length} باقة إضافية نشطة
-                                </span>
-                            ` : `<span class="text-slate-500">لا يوجد</span>`}
-                        </td>
-                        <td class="p-3 text-center">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
-                                ${statusText}
-                            </span>
-                        </td>
-                        <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="refreshSingleLine('${line.id}', this)" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px]" title="تحديث">
-                                    <i class="fa-solid fa-rotate"></i>
-                                </button>
-                                <button onclick="openEditModal('${line.id}')" class="w-6 h-6 rounded bg-slate-800 hover:bg-indigo-900/50 text-slate-400 hover:text-indigo-300 flex items-center justify-center text-[10px]" title="تعديل">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button onclick="deleteLine('${line.id}')" class="w-6 h-6 rounded bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 flex items-center justify-center text-[10px]" title="حذف">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
                             </div>
-                        </td>
-                    </tr>
+                        </div>
+
+                        <!-- Progress Bar & Quota Numbers -->
+                        <div class="flex-1 max-w-xl">
+                            ${hasData ? `
+                                <div>
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <div>
+                                            <span class="text-slate-400 text-[11px]">المتبقي:</span>
+                                            <span class="font-black text-emerald-400 font-mono text-sm mr-1">${remainGb} GB</span>
+                                            <span class="text-slate-500 text-[11px]">(${activeRemainPct}%)</span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400">
+                                            من إجمالي <strong class="text-slate-200 font-mono">${activeTotalGb} GB</strong>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-slate-800 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500 ${progressColor}" style="width: ${activeRemainPct}%"></div>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                                        <span>تجديد: <strong class="text-slate-300">${expireDate}</strong></span>
+                                        <span class="font-bold ${daysLeft <= 3 ? 'text-amber-400' : 'text-purple-300'}">⏳ متبقي ${daysLeft} يوم</span>
+                                    </div>
+                                </div>
+                            ` : `<span class="text-rose-400 text-xs">لم يتم جلب البيانات</span>`}
+                        </div>
+
+                        <!-- Balance & Points -->
+                        <div class="flex items-center gap-4 text-xs font-mono border-y lg:border-y-0 lg:border-x border-slate-800/80 py-2 lg:py-0 lg:px-4">
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-sans">الرصيد</p>
+                                <span class="font-bold text-amber-300">${hasBalance ? `${balanceVal} ج.م` : '-'}</span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-sans">نقاط 4U</p>
+                                <span class="font-bold text-purple-300">${hasPoints ? `${pointsVal}` : '-'}</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-2 justify-end">
+                            <button onclick="refreshSingleLine('${line.id}', this)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-rotate"></i>
+                                <span>فحص</span>
+                            </button>
+                            <button onclick="openEditModal('${line.id}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span>تعديل</span>
+                            </button>
+                            <button onclick="deleteLine('${line.id}')" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center text-xs transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
                 `;
             }).join('');
+        }
+
+        function toggleDetailsRow(lineId) {
+            const row = document.getElementById(`details-row-${lineId}`);
+            if (row) {
+                row.classList.toggle('hidden');
+            }
+        }
+
+        function copyToClipboard(text, msg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg || `تم نسخ: ${text}`, "success");
+            }).catch(() => {
+                showToast(`تم نسخ: ${text}`, "success");
+            });
         }
 
         // Export Report to CSV / Excel
