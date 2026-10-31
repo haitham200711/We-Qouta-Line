@@ -151,6 +151,9 @@ class SettingsUpdate(BaseModel):
   whatsapp_alert_on_low_quota: Optional[bool] = None
   whatsapp_alert_on_renewal: Optional[bool] = None
   whatsapp_alert_on_error: Optional[bool] = None
+  whatsapp_template_report: Optional[str] = None
+  whatsapp_template_low_quota: Optional[str] = None
+  whatsapp_template_renewal: Optional[str] = None
 
 
 class TelegramTest(BaseModel):
@@ -169,6 +172,10 @@ class WhatsAppPairRequest(BaseModel):
 class WhatsAppSendCustom(BaseModel):
   to: str
   message: str
+
+
+class WhatsAppTemplatePreview(BaseModel):
+  template: str
 
 
 # --- Lifecycle Events ---
@@ -624,7 +631,7 @@ def api_send_line_whatsapp(
         detail="يرجى تحديد رقم واتساب مستلم إما في الخط أو في الإعدادات العامة",
     )
 
-  msg = build_line_whatsapp_summary(line)
+  msg = build_line_whatsapp_summary(line, settings)
   result = send_whatsapp_message(target_phone, msg, settings)
   if not result.get("success"):
     raise HTTPException(
@@ -635,6 +642,40 @@ def api_send_line_whatsapp(
       "success": True,
       "message": f"تم إرسال تقرير الخط بنجاح إلى الرقم: {target_phone}",
   }
+
+
+@app.post("/api/whatsapp/preview-template")
+def api_preview_whatsapp_template(
+    payload: WhatsAppTemplatePreview, user: str = Depends(get_current_user)
+):
+  from whatsapp_notifier import render_template
+
+  sample_context = {
+      "customer_name": "هيثم عبد القادر",
+      "label": "فرع الإسكندرية الرئيسي",
+      "landline": "035057564",
+      "offer_name": "سوبر 140 جيجابايت",
+      "remain_gb": 45.2,
+      "total_gb": 140,
+      "used_gb": 94.8,
+      "remain_percent": 32,
+      "remain_pct": 32,
+      "expire_date": "2026/11/15",
+      "days_left": 5,
+      "countdown_text": "متبقي 5 أيام",
+      "balance": "25.00",
+      "points": "1450",
+      "extra_info": (
+          "💰 *الرصيد الحالي:* 25.00 ج.م\n🎁 *نقاط 4U:* 1450 نقطة\n"
+      ),
+      "topup_section": (
+          "📦 *باقات إضافية نشطة (1):*\n  ▪️ باقة 1: 15 / 20 GB (تنتهي"
+          " 2026/11/10)\n"
+      ),
+      "last_updated": datetime.datetime.now().strftime("%Y/%m/%d %I:%M %p"),
+  }
+  preview_text = render_template(payload.template, sample_context)
+  return {"success": True, "preview": preview_text}
 
 
 @app.get("/api/stats")

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import re
 import subprocess
 import urllib.parse
 from typing import Any, Dict, Optional
@@ -9,6 +10,73 @@ import requests
 logger = logging.getLogger("whatsapp_notifier")
 
 WA_SERVICE_URL = os.environ.get("WA_SERVICE_URL", "http://127.0.0.1:3005")
+
+DEFAULT_WHATSAPP_TEMPLATE_REPORT = (
+    "📋 *تقرير استهلاك خط WE الأرضي*\n\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "🏢 *المسمى / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "📦 *الباقة الأساسية:* {offer_name}\n\n"
+    "📊 *الاستهلاك والمتبقي:*\n"
+    "▪️ المتبقي: *{remain_gb} GB* ({remain_percent}%)\n"
+    "▪️ المستهلك: *{used_gb} GB*\n"
+    "▪️ السعة الكلية: *{total_gb} GB*\n\n"
+    "⏳ *موعد التجديد:* {expire_date}\n"
+    "⏱️ *حالة الصلاحية:* *{countdown_text}*\n"
+    "{extra_info}"
+    "{topup_section}\n"
+    "⏰ _تاريخ الفحص: {last_updated}_\n"
+    "_تم الإرسال تلقائياً من نظام WE Quota Monitor_"
+)
+
+DEFAULT_WHATSAPP_TEMPLATE_LOW_QUOTA = (
+    "⚠️ *تحذير: باقة الإنترنت أوشكت على الانتهاء!*\n\n"
+    "🏢 *الخط / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "📦 *الباقة:* {offer_name}\n\n"
+    "المتبقي فقط: *{remain_gb} GB* من أصل {total_gb} GB ({remain_percent}%)\n"
+    "📊 *المستهلك:* {used_gb} GB\n"
+    "⏳ *موعد التجديد:* {expire_date} ({countdown_text})\n"
+    "⏰ *تاريخ الفحص:* {last_updated}\n\n"
+    "_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_"
+)
+
+DEFAULT_WHATSAPP_TEMPLATE_RENEWAL = (
+    "📅 *تنبيه: اقتراب موعد تجديد باقة الخط!*\n\n"
+    "🏢 *الخط / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "📦 *الباقة:* {offer_name}\n\n"
+    "⏱️ *حالة التجديد:* *{countdown_text}*\n"
+    "📅 *تاريخ التجديد:* *{expire_date}*\n"
+    "📊 *المتبقي حالياً:* {remain_gb} GB ({remain_percent}%)\n"
+    "{extra_info}\n"
+    "⏰ *تاريخ الفحص:* {last_updated}\n\n"
+    "_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_"
+)
+
+
+def render_template(template: str, context: Dict[str, Any]) -> str:
+  """Safely renders message templates by replacing {key} placeholders."""
+  if not template:
+    return ""
+
+  # Alias support
+  ctx = context.copy()
+  if "remain_pct" not in ctx and "remain_percent" in ctx:
+    ctx["remain_pct"] = ctx["remain_percent"]
+  if "remain_percent" not in ctx and "remain_pct" in ctx:
+    ctx["remain_percent"] = ctx["remain_pct"]
+
+  def replacer(match):
+    key = match.group(1).strip()
+    if key in ctx:
+      val = ctx[key]
+      return "" if val is None else str(val)
+    return match.group(0)
+
+  return re.sub(r"\{([a-zA-Z0-9_]+)\}", replacer, template)
 
 
 def is_service_alive() -> bool:
@@ -199,8 +267,10 @@ def test_whatsapp_connection(
   return send_whatsapp_message(to, test_msg, settings)
 
 
-def build_line_whatsapp_summary(line: Dict[str, Any]) -> str:
-  """Builds a comprehensive, nicely-formatted WhatsApp report message for a single line."""
+def build_line_whatsapp_summary(
+    line: Dict[str, Any], settings: Optional[Dict[str, Any]] = None
+) -> str:
+  """Builds a formatted WhatsApp report message for a single line using custom or default template."""
   raw = line.get("last_data")
   q = (raw.get("data") if (raw and isinstance(raw, dict)) else None) or raw or {}
 
@@ -253,24 +323,34 @@ def build_line_whatsapp_summary(line: Dict[str, Any]) -> str:
           f"  ▪️ باقة {idx}: {t_rem} / {t_tot} GB (تنتهي {tb.get('expire_date')})\n"
       )
 
-  msg = (
-      f"📋 *تقرير استهلاك خط WE الأرضي*\n\n"
-      f"👤 *صاحب الخط:* {customer_name}\n"
-      f"🏢 *المسمى / الفرع:* {label}\n"
-      f"☎️ *رقم التليفون:* `{landline}`\n"
-      f"📦 *الباقة الأساسية:* {offer_name}\n\n"
-      f"📊 *الاستهلاك والمتبقي:*\n"
-      f"▪️ المتبقي: *{remain_gb} GB* ({remain_pct}%)\n"
-      f"▪️ المستهلك: *{used_gb} GB*\n"
-      f"▪️ السعة الكلية: *{total_gb} GB*\n\n"
-      f"⏳ *موعد التجديد:* {expire_date}\n"
-      f"⏱️ *حالة الصلاحية:* *{cd_text}*\n"
-      f"{extra_info}"
-      f"{topup_section}\n"
-      f"⏰ _تاريخ الفحص: {last_updated}_\n"
-      f"_تم الإرسال تلقائياً من نظام WE Quota Monitor_"
+  context = {
+      "customer_name": customer_name,
+      "label": label,
+      "landline": landline,
+      "offer_name": offer_name,
+      "remain_gb": remain_gb,
+      "total_gb": total_gb,
+      "used_gb": used_gb,
+      "remain_percent": remain_pct,
+      "remain_pct": remain_pct,
+      "expire_date": expire_date,
+      "days_left": days_left,
+      "countdown_text": cd_text,
+      "balance": balance if balance is not None else "",
+      "points": points if points is not None else "",
+      "extra_info": extra_info,
+      "topup_section": topup_section,
+      "last_updated": last_updated,
+  }
+
+  s = settings or {}
+  custom_tmpl = s.get("whatsapp_template_report")
+  template = (
+      custom_tmpl
+      if (custom_tmpl and custom_tmpl.strip())
+      else DEFAULT_WHATSAPP_TEMPLATE_REPORT
   )
-  return msg
+  return render_template(template, context)
 
 
 def check_and_send_whatsapp_alerts(
@@ -298,11 +378,58 @@ def check_and_send_whatsapp_alerts(
   line_id = line["id"]
   label = line.get("label", line.get("landline"))
   landline = line.get("landline")
+  customer_name = line.get("customer_name") or last_data.get(
+      "customer_name", "مشترك وي"
+  )
+  offer_name = last_data.get("offer_name", "باقة وي إنترنت")
+
   remain_gb = last_data.get("remain_gb", 0)
   total_gb = last_data.get("total_gb", 0)
+  used_gb = last_data.get("used_gb", 0)
   remain_percent = last_data.get("remain_percent", 0)
   days_left = last_data.get("days_left", 999)
   expire_date = last_data.get("expire_date", "")
+  last_updated = last_data.get(
+      "last_updated", datetime.datetime.now().strftime("%Y/%m/%d %I:%M %p")
+  )
+
+  # Countdown text
+  if days_left <= 0:
+    cd_text = "تجديد اليوم (مستحق الآن) ⚠️"
+  elif days_left == 1:
+    cd_text = "ينتهي غداً ⏳"
+  elif days_left == 2:
+    cd_text = "متبقي يومان"
+  else:
+    cd_text = f"متبقي {days_left} يوم"
+
+  balance = line.get("balance") or last_data.get("balance")
+  points = line.get("points") or last_data.get("points")
+  extra_info = ""
+  if balance is not None and balance != "":
+    extra_info += f"💰 *الرصيد الحالي:* {balance} ج.م\n"
+  if points is not None and points != "":
+    extra_info += f"🎁 *نقاط 4U:* {points} نقطة\n"
+
+  context = {
+      "customer_name": customer_name,
+      "label": label,
+      "landline": landline,
+      "offer_name": offer_name,
+      "remain_gb": remain_gb,
+      "total_gb": total_gb,
+      "used_gb": used_gb,
+      "remain_percent": remain_percent,
+      "remain_pct": remain_percent,
+      "expire_date": expire_date,
+      "days_left": days_left,
+      "countdown_text": cd_text,
+      "balance": balance if balance is not None else "",
+      "points": points if points is not None else "",
+      "extra_info": extra_info,
+      "topup_section": "",
+      "last_updated": last_updated,
+  }
 
   thresh_percent = settings.get("alert_threshold_percent", 20)
   thresh_gb = settings.get("alert_threshold_gb", 15)
@@ -316,49 +443,37 @@ def check_and_send_whatsapp_alerts(
   now_ts = datetime.datetime.now().timestamp()
 
   alert_type = None
-  alert_title = ""
-  alert_details = ""
+  message = ""
 
   # 1. Critical Low Quota Check
   if alert_on_low_quota and (
       remain_percent <= thresh_percent or remain_gb <= thresh_gb
   ):
     alert_type = "low_quota"
-    alert_title = "⚠️ *تحذير: باقة الإنترنت أوشكت على الانتهاء!*"
-    alert_details = (
-        f"المتبقي فقط: *{remain_gb} GB* من أصل {total_gb} GB"
-        f" ({remain_percent}%)\n"
+    custom_tmpl = settings.get("whatsapp_template_low_quota")
+    template = (
+        custom_tmpl
+        if (custom_tmpl and custom_tmpl.strip())
+        else DEFAULT_WHATSAPP_TEMPLATE_LOW_QUOTA
     )
+    message = render_template(template, context)
 
   # 2. Expiry Date Check
   elif alert_on_renewal and (days_left <= thresh_days):
     alert_type = "expiring_soon"
-    alert_title = "📅 *تنبيه: اقتراب موعد تجديد باقة الخط!*"
-    if days_left <= 0:
-      time_msg = "*اليوم (مستحق الآن)*"
-    elif days_left == 1:
-      time_msg = "*غداً*"
-    else:
-      time_msg = f"*{days_left} يوم فقط*"
-    alert_details = (
-        f"المتبقي على التجديد: {time_msg}\nتاريخ التجديد: *{expire_date}*\n"
+    custom_tmpl = settings.get("whatsapp_template_renewal")
+    template = (
+        custom_tmpl
+        if (custom_tmpl and custom_tmpl.strip())
+        else DEFAULT_WHATSAPP_TEMPLATE_RENEWAL
     )
+    message = render_template(template, context)
 
-  if alert_type:
+  if alert_type and message:
     alert_key = f"{line_id}_{alert_type}"
     last_sent = last_alerts.get(alert_key, 0)
     # 18 hours cooldown (64800 seconds)
     if now_ts - last_sent > 64800:
-      message = (
-          f"{alert_title}\n\n"
-          f"🏢 *الخط / الفرع:* {label}\n"
-          f"☎️ *رقم التليفون:* `{landline}`\n"
-          f"{alert_details}"
-          f"📊 *الاستهلاك:* {last_data.get('used_gb', 0)} GB مستهلكة\n"
-          f"📦 *المتبقي الكلي:* {remain_gb} GB\n"
-          f"⏰ *تاريخ الفحص:* {last_data.get('last_updated')}\n\n"
-          f"_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_"
-      )
       res = send_whatsapp_message(recipient, message, settings)
       if res.get("success"):
         last_alerts[alert_key] = now_ts

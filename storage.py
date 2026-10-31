@@ -20,6 +20,51 @@ def hash_password(password: str) -> str:
   return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
+DEFAULT_WHATSAPP_TEMPLATE_REPORT = (
+    "📋 *تقرير استهلاك خط WE الأرضي*\n\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "🏢 *المسمى / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "📦 *الباقة الأساسية:* {offer_name}\n\n"
+    "📊 *الاستهلاك والمتبقي:*\n"
+    "▪️ المتبقي: *{remain_gb} GB* ({remain_percent}%)\n"
+    "▪️ المستهلك: *{used_gb} GB*\n"
+    "▪️ السعة الكلية: *{total_gb} GB*\n\n"
+    "⏳ *موعد التجديد:* {expire_date}\n"
+    "⏱️ *حالة الصلاحية:* *{countdown_text}*\n"
+    "{extra_info}"
+    "{topup_section}\n"
+    "⏰ _تاريخ الفحص: {last_updated}_\n"
+    "_تم الإرسال تلقائياً من نظام WE Quota Monitor_"
+)
+
+DEFAULT_WHATSAPP_TEMPLATE_LOW_QUOTA = (
+    "⚠️ *تحذير: باقة الإنترنت أوشكت على الانتهاء!*\n\n"
+    "🏢 *الخط / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "📦 *الباقة:* {offer_name}\n\n"
+    "المتبقي فقط: *{remain_gb} GB* من أصل {total_gb} GB ({remain_percent}%)\n"
+    "📊 *المستهلك:* {used_gb} GB\n"
+    "⏳ *موعد التجديد:* {expire_date} ({countdown_text})\n"
+    "⏰ *تاريخ الفحص:* {last_updated}\n\n"
+    "_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_"
+)
+
+DEFAULT_WHATSAPP_TEMPLATE_RENEWAL = (
+    "📅 *تنبيه: اقتراب موعد تجديد باقة الخط!*\n\n"
+    "🏢 *الخط / الفرع:* {label}\n"
+    "☎️ *رقم التليفون:* `{landline}`\n"
+    "👤 *صاحب الخط:* {customer_name}\n"
+    "📦 *الباقة:* {offer_name}\n\n"
+    "⏱️ *حالة التجديد:* *{countdown_text}*\n"
+    "📅 *تاريخ التجديد:* *{expire_date}*\n"
+    "📊 *المتبقي حالياً:* {remain_gb} GB ({remain_percent}%)\n"
+    "{extra_info}\n"
+    "⏰ *تاريخ الفحص:* {last_updated}\n\n"
+    "_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_"
+)
+
 DEFAULT_SETTINGS = {
     "telegram_bot_token": "",
     "telegram_chat_id": "",
@@ -33,6 +78,14 @@ DEFAULT_SETTINGS = {
     "last_alerts_sent": {},
     "admin_username": "admin",
     "admin_password_hash": hash_password("admin"),
+    "whatsapp_enabled": False,
+    "whatsapp_provider": "baileys",
+    "whatsapp_default_phone": "",
+    "whatsapp_alert_on_low_quota": True,
+    "whatsapp_alert_on_renewal": True,
+    "whatsapp_template_report": DEFAULT_WHATSAPP_TEMPLATE_REPORT,
+    "whatsapp_template_low_quota": DEFAULT_WHATSAPP_TEMPLATE_LOW_QUOTA,
+    "whatsapp_template_renewal": DEFAULT_WHATSAPP_TEMPLATE_RENEWAL,
 }
 
 

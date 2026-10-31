@@ -725,7 +725,7 @@
 
     <!-- Modal: Settings & Notifications -->
     <div id="modalSettings" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSettingsModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -820,6 +820,97 @@
                             <span>إرسال رسالة تجربة للواتساب</span>
                         </button>
                         <span id="testWhatsAppStatus" class="text-xs"></span>
+                    </div>
+
+                    <!-- WhatsApp Message Templates Customization -->
+                    <div class="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-file-pen text-emerald-400 text-base"></i>
+                                <div>
+                                    <span class="text-xs font-bold text-white block">تخصيص نصوص رسائل الواتساب</span>
+                                    <span class="text-[10px] text-slate-400">تحكم بالصيغة والمتغيرات لكل نوع من الإشعارات</span>
+                                </div>
+                            </div>
+                            <button type="button" onclick="resetActiveWhatsAppTemplate()" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white transition flex items-center gap-1 border border-slate-700/80 shadow-sm" title="استعادة الصياغة الافتراضية للقالب المحدد">
+                                <i class="fa-solid fa-rotate-left text-[10px] text-amber-400"></i>
+                                <span>استعادة الافتراضي</span>
+                            </button>
+                        </div>
+
+                        <!-- Template Selector Tabs -->
+                        <div class="flex items-center gap-1 p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-xs">
+                            <button type="button" id="waTabBtn_report" onclick="switchWhatsAppTemplateTab('report')" class="flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow-sm text-xs">
+                                <i class="fa-solid fa-file-lines text-[11px]"></i>
+                                <span>تقرير الخط</span>
+                            </button>
+                            <button type="button" id="waTabBtn_low_quota" onclick="switchWhatsAppTemplateTab('low_quota')" class="flex-1 py-1.5 px-2 rounded-lg font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 text-xs">
+                                <i class="fa-solid fa-triangle-exclamation text-[11px]"></i>
+                                <span>تنبيه نفاد الجيجات</span>
+                            </button>
+                            <button type="button" id="waTabBtn_renewal" onclick="switchWhatsAppTemplateTab('renewal')" class="flex-1 py-1.5 px-2 rounded-lg font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 text-xs">
+                                <i class="fa-regular fa-clock text-[11px]"></i>
+                                <span>تنبيه اقتراب التجديد</span>
+                            </button>
+                        </div>
+
+                        <!-- Available Variables Toolbar -->
+                        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/90 space-y-1.5">
+                            <div class="flex items-center justify-between flex-wrap gap-1">
+                                <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                                    <i class="fa-solid fa-tags text-emerald-400 text-[10px]"></i>
+                                    المتغيرات المتاحة (اضغط للإدراج في مكان المؤشر):
+                                </span>
+                                <span class="text-[10px] text-slate-400">تنسيق الواتساب: *عريض* و _مائل_</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1 text-[11px]">
+                                <button type="button" onclick="insertVariableIntoTemplate('{customer_name}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="اسم صاحب الخط">{customer_name} <span class="text-[9px] text-slate-400 font-sans">الاسم</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{label}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="المسمى أو الفرع">{label} <span class="text-[9px] text-slate-400 font-sans">الفرع</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{landline}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="رقم التليفون الأرضي">{landline} <span class="text-[9px] text-slate-400 font-sans">الرقم</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{offer_name}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="اسم الباقة">{offer_name} <span class="text-[9px] text-slate-400 font-sans">الباقة</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{remain_gb}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="الجيجابايت المتبقية">{remain_gb} <span class="text-[9px] text-slate-400 font-sans">المتبقي</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{total_gb}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="السعة الإجمالية">{total_gb} <span class="text-[9px] text-slate-400 font-sans">الإجمالي</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{used_gb}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="الجيجابايت المستهلكة">{used_gb} <span class="text-[9px] text-slate-400 font-sans">المستهلك</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{remain_percent}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="نسبة المتبقي %">{remain_percent} <span class="text-[9px] text-slate-400 font-sans">%</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{expire_date}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="تاريخ التجديد">{expire_date} <span class="text-[9px] text-slate-400 font-sans">التاريخ</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{countdown_text}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="نص الصلاحية (مثال: متبقي 3 أيام)">{countdown_text} <span class="text-[9px] text-slate-400 font-sans">الصلاحية</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{balance}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="الرصيد">{balance} <span class="text-[9px] text-slate-400 font-sans">الرصيد</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{points}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="نقاط 4U">{points} <span class="text-[9px] text-slate-400 font-sans">نقاط</span></button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{extra_info}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="فقرة الرصيد والنقاط">{extra_info}</button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{topup_section}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="فقرة الباقات الإضافية">{topup_section}</button>
+                                <button type="button" onclick="insertVariableIntoTemplate('{last_updated}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700/60 font-mono transition" title="تاريخ ووقت الفحص">{last_updated}</button>
+                            </div>
+                        </div>
+
+                        <!-- Textarea Editors (One for each tab) -->
+                        <div>
+                            <textarea id="settingWhatsAppTemplate_report" oninput="updateWhatsAppTemplatePreview()" rows="7" dir="rtl" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-emerald-500 placeholder-slate-600 shadow-inner" placeholder="اكتب نص تقرير الخط هنا..."></textarea>
+                            <textarea id="settingWhatsAppTemplate_low_quota" oninput="updateWhatsAppTemplatePreview()" rows="7" dir="rtl" class="hidden w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-emerald-500 placeholder-slate-600 shadow-inner" placeholder="اكتب نص تحذير نفاد الجيجات هنا..."></textarea>
+                            <textarea id="settingWhatsAppTemplate_renewal" oninput="updateWhatsAppTemplatePreview()" rows="7" dir="rtl" class="hidden w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-emerald-500 placeholder-slate-600 shadow-inner" placeholder="اكتب نص تنبيه التجديد هنا..."></textarea>
+                        </div>
+
+                        <!-- Live WhatsApp Chat Preview Card -->
+                        <div class="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/60">
+                            <button type="button" onclick="toggleTemplatePreviewBox()" class="w-full px-3 py-2 bg-slate-900/90 flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white transition">
+                                <span class="flex items-center gap-1.5 text-emerald-400">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                    <span>معاينة حية لشكل الرسالة في الواتساب</span>
+                                </span>
+                                <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                                    <span id="waPreviewToggleLabel">إظهار المعاينة</span>
+                                    <i id="waPreviewToggleIcon" class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </span>
+                            </button>
+                            <div id="waPreviewContainer" class="hidden p-3 bg-[#0c1317] border-t border-slate-800">
+                                <div class="max-w-md mx-auto bg-[#005c4b] text-[#e9edef] rounded-2xl rounded-tr-none p-3 shadow-md text-xs leading-relaxed font-sans select-text border border-[#005c4b]/50">
+                                    <div id="waPreviewContent" class="whitespace-pre-wrap break-words"></div>
+                                    <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-emerald-200/70 select-none">
+                                        <span>12:45 م</span>
+                                        <i class="fa-solid fa-check-double text-sky-300 text-[10px]"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2621,6 +2712,185 @@
             }
         }
 
+        // --- WhatsApp Template Customization Logic ---
+        let currentWhatsAppTemplateTab = 'report';
+
+        const DEFAULT_WHATSAPP_TEMPLATES = {
+            report: `📋 *تقرير استهلاك خط WE الأرضي*
+
+👤 *صاحب الخط:* {customer_name}
+🏢 *المسمى / الفرع:* {label}
+☎️ *رقم التليفون:* \`{landline}\`
+📦 *الباقة الأساسية:* {offer_name}
+
+📊 *الاستهلاك والمتبقي:*
+▪️ المتبقي: *{remain_gb} GB* ({remain_percent}%)
+▪️ المستهلك: *{used_gb} GB*
+▪️ السعة الكلية: *{total_gb} GB*
+
+⏳ *موعد التجديد:* {expire_date}
+⏱️ *حالة الصلاحية:* *{countdown_text}*
+{extra_info}{topup_section}
+⏰ _تاريخ الفحص: {last_updated}_
+_تم الإرسال تلقائياً من نظام WE Quota Monitor_`,
+
+            low_quota: `⚠️ *تحذير: باقة الإنترنت أوشكت على الانتهاء!*
+
+🏢 *الخط / الفرع:* {label}
+☎️ *رقم التليفون:* \`{landline}\`
+👤 *صاحب الخط:* {customer_name}
+📦 *الباقة:* {offer_name}
+
+المتبقي فقط: *{remain_gb} GB* من أصل {total_gb} GB ({remain_percent}%)
+📊 *المستهلك:* {used_gb} GB
+⏳ *موعد التجديد:* {expire_date} ({countdown_text})
+⏰ *تاريخ الفحص:* {last_updated}
+
+_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_`,
+
+            renewal: `📅 *تنبيه: اقتراب موعد تجديد باقة الخط!*
+
+🏢 *الخط / الفرع:* {label}
+☎️ *رقم التليفون:* \`{landline}\`
+👤 *صاحب الخط:* {customer_name}
+📦 *الباقة:* {offer_name}
+
+المتبقي على التجديد: *{countdown_text}*
+📅 *تاريخ التجديد:* {expire_date}
+📊 *الاستهلاك الحالي:* {used_gb} GB مستهلكة
+📦 *المتبقي الكلي:* {remain_gb} GB
+⏰ *تاريخ الفحص:* {last_updated}
+
+_تم إرسال هذا الإشعار تلقائياً من نظام WE Quota Monitor_`
+        };
+
+        function switchWhatsAppTemplateTab(tabKey) {
+            currentWhatsAppTemplateTab = tabKey;
+            
+            const tabs = ['report', 'low_quota', 'renewal'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`waTabBtn_${t}`);
+                const txt = document.getElementById(`settingWhatsAppTemplate_${t}`);
+                if (btn) {
+                    if (t === tabKey) {
+                        btn.className = "flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow-sm text-xs";
+                    } else {
+                        btn.className = "flex-1 py-1.5 px-2 rounded-lg font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 text-xs";
+                    }
+                }
+                if (txt) {
+                    if (t === tabKey) {
+                        txt.classList.remove('hidden');
+                    } else {
+                        txt.classList.add('hidden');
+                    }
+                }
+            });
+
+            updateWhatsAppTemplatePreview();
+        }
+
+        function getActiveTemplateTextarea() {
+            return document.getElementById(`settingWhatsAppTemplate_${currentWhatsAppTemplateTab}`);
+        }
+
+        function insertVariableIntoTemplate(tag) {
+            const textarea = getActiveTemplateTextarea();
+            if (!textarea) return;
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const val = textarea.value;
+            textarea.value = val.substring(0, start) + tag + val.substring(end);
+            textarea.focus();
+            const newCursor = start + tag.length;
+            textarea.setSelectionRange(newCursor, newCursor);
+            updateWhatsAppTemplatePreview();
+        }
+
+        function resetActiveWhatsAppTemplate() {
+            const textarea = getActiveTemplateTextarea();
+            if (!textarea) return;
+            const defaultText = DEFAULT_WHATSAPP_TEMPLATES[currentWhatsAppTemplateTab] || '';
+            textarea.value = defaultText;
+            updateWhatsAppTemplatePreview();
+            showToast("تمت استعادة النص الافتراضي لهذا القالب", "info");
+        }
+
+        let isWaPreviewOpen = false;
+        function toggleTemplatePreviewBox() {
+            const container = document.getElementById('waPreviewContainer');
+            const label = document.getElementById('waPreviewToggleLabel');
+            const icon = document.getElementById('waPreviewToggleIcon');
+            isWaPreviewOpen = !isWaPreviewOpen;
+            if (isWaPreviewOpen) {
+                container.classList.remove('hidden');
+                label.textContent = "إخفاء المعاينة";
+                icon.className = "fa-solid fa-chevron-up text-[10px]";
+                updateWhatsAppTemplatePreview();
+            } else {
+                container.classList.add('hidden');
+                label.textContent = "إظهار المعاينة";
+                icon.className = "fa-solid fa-chevron-down text-[10px]";
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatWhatsAppMarkdown(rawText) {
+            let escaped = escapeHtml(rawText);
+            // Replace bold: *text*
+            escaped = escaped.replace(/\*([^*\n\r]+)\*/g, '<strong class="font-bold text-white">$1</strong>');
+            // Replace italic: _text_
+            escaped = escaped.replace(/_([^_\n\r]+)_/g, '<em class="italic text-emerald-100">$1</em>');
+            // Replace strikethrough: ~text~
+            escaped = escaped.replace(/~([^~\n\r]+)~/g, '<del class="line-through text-slate-300">$1</del>');
+            // Replace monospace / code: `text`
+            escaped = escaped.replace(/`([^`\n\r]+)`/g, '<code class="bg-black/40 px-1 py-0.5 rounded text-[11px] font-mono text-emerald-200 border border-emerald-500/20">$1</code>');
+            return escaped;
+        }
+
+        function updateWhatsAppTemplatePreview() {
+            const textarea = getActiveTemplateTextarea();
+            const previewEl = document.getElementById('waPreviewContent');
+            if (!textarea || !previewEl) return;
+
+            let tmpl = textarea.value;
+            if (!tmpl || !tmpl.trim()) {
+                tmpl = DEFAULT_WHATSAPP_TEMPLATES[currentWhatsAppTemplateTab] || '';
+            }
+
+            const now = new Date();
+            const sampleContext = {
+                customer_name: "هيثم عبد القادر",
+                label: "فرع الإسكندرية الرئيسي",
+                landline: "035057564",
+                offer_name: "سوبر 140 جيجابايت",
+                remain_gb: "45.2",
+                total_gb: "140",
+                used_gb: "94.8",
+                remain_percent: "32",
+                remain_pct: "32",
+                expire_date: "2026/11/15",
+                days_left: "5",
+                countdown_text: "متبقي 5 أيام",
+                balance: "25.00",
+                points: "1450",
+                extra_info: "💰 *الرصيد الحالي:* 25.00 ج.م\n🎁 *نقاط 4U:* 1450 نقطة\n",
+                topup_section: "📦 *باقات إضافية نشطة (1):*\n  ▪️ باقة 1: 15 / 20 GB (تنتهي 2026/11/10)\n",
+                last_updated: now.toLocaleDateString('ar-EG', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+            };
+
+            let rendered = tmpl.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
+                return sampleContext[key] !== undefined ? sampleContext[key] : match;
+            });
+
+            previewEl.innerHTML = formatWhatsAppMarkdown(rendered);
+        }
+
         // Settings Modal
         async function openSettingsModal() {
             try {
@@ -2640,6 +2910,12 @@
                     }
                     toggleWhatsAppProviderFields();
                     checkWhatsAppStatus();
+
+                    // WhatsApp Message Templates
+                    document.getElementById('settingWhatsAppTemplate_report').value = s.whatsapp_template_report || DEFAULT_WHATSAPP_TEMPLATES.report;
+                    document.getElementById('settingWhatsAppTemplate_low_quota').value = s.whatsapp_template_low_quota || DEFAULT_WHATSAPP_TEMPLATES.low_quota;
+                    document.getElementById('settingWhatsAppTemplate_renewal').value = s.whatsapp_template_renewal || DEFAULT_WHATSAPP_TEMPLATES.renewal;
+                    switchWhatsAppTemplateTab('report');
 
                     // Telegram Settings
                     document.getElementById('settingTelegramEnabled').checked = !!s.telegram_enabled;
@@ -2673,6 +2949,9 @@
                 whatsapp_callmebot_apikey: document.getElementById('settingCallMeBotApiKey')?.value.trim() || '',
                 whatsapp_alert_on_low_quota: document.getElementById('settingWhatsAppLowQuota').checked,
                 whatsapp_alert_on_renewal: document.getElementById('settingWhatsAppRenewal').checked,
+                whatsapp_template_report: document.getElementById('settingWhatsAppTemplate_report').value.trim(),
+                whatsapp_template_low_quota: document.getElementById('settingWhatsAppTemplate_low_quota').value.trim(),
+                whatsapp_template_renewal: document.getElementById('settingWhatsAppTemplate_renewal').value.trim(),
                 // Telegram
                 telegram_enabled: document.getElementById('settingTelegramEnabled').checked,
                 telegram_bot_token: document.getElementById('settingBotToken').value.trim(),
