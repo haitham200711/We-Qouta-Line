@@ -612,7 +612,7 @@
                 <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
                     <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
                         <input type="checkbox" id="bulkFetchNow" checked class="w-4 h-4 rounded border-slate-800 text-purple-600 focus:ring-purple-500 bg-slate-950">
-                        <span>فحص واستعلام باقات الخطوط فوراً في الخلفية</span>
+                        <span>فحص واستعلام باقات الخطوط فوراً (على دفعات: 4 خطوط معاً)</span>
                     </label>
                 </div>
 
@@ -2258,6 +2258,14 @@
                     showToast(data.message, "success");
                     closeBulkImportModal();
                     await loadDashboard();
+                    if (fetch_now) {
+                        let ticks = 0;
+                        const pollBatch = setInterval(async () => {
+                            ticks++;
+                            await loadDashboard();
+                            if (ticks >= 8) clearInterval(pollBatch);
+                        }, 3500);
+                    }
                 } else {
                     showToast(data.detail || data.message || "فشل الاستيراد الجماعي", "error");
                 }

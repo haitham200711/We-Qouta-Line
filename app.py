@@ -1,8 +1,10 @@
 import asyncio
+import concurrent.futures
 import datetime
 import logging
 import os
 import re
+import time
 from typing import List, Optional
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -414,22 +416,50 @@ def bulk_import_lines(
 
     def fetch_batch_task():
       settings = storage.get_settings()
-      for line in added_lines:
+      batch_size = 4
+      total = len(added_lines)
+      logger.info(
+          f"Starting parallel batch fetch for {total} imported lines in batches of {batch_size}..."
+      )
+
+      def fetch_single_line(line):
         try:
+          logger.info(f"Querying line {line.get('landline')}...")
           client = WEApiClient(line["landline"], line["password"])
           data = client.fetch_quota()
           storage.update_line_quota(line["id"], data)
           updated = storage.get_line(line["id"])
           if updated and data.get("success"):
             check_and_send_alerts(updated, settings)
+            check_and_send_whatsapp_alerts(updated, settings)
         except Exception as e:
           logger.error(
               f"Error fetching imported line {line.get('landline')}: {e}"
           )
+          storage.update_line_quota(
+              line["id"], {"success": False, "error": f"خطأ في الاستعلام: {e}"}
+          )
+
+      # Process lines in chunks of 4 lines at a time
+      for i in range(0, total, batch_size):
+        chunk = added_lines[i : i + batch_size]
+        logger.info(
+            f"Processing chunk {i // batch_size + 1} ({len(chunk)} lines: {[l.get('landline') for l in chunk]})..."
+        )
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=batch_size
+        ) as executor:
+          list(executor.map(fetch_single_line, chunk))
+
+        # Pause 1 second between 4-line batches to keep WE API and connection steady
+        if i + batch_size < total:
+          time.sleep(1)
+
+      logger.info(f"Finished batch fetch for all {total} imported lines.")
 
     background_tasks.add_task(fetch_batch_task)
 
-  msg = f"تمت إضافة {result['added_count']} خط بنجاح"
+  msg = f"تمت إضافة {result['added_count']} خط بنجاح (جاري الاستعلام التلقائي على دفعات: 4 خطوط معاً)"
   if result["skipped_count"] > 0:
     msg += f" (تم تخطي {result['skipped_count']} رقم مكرر أو غير صالح)"
 
